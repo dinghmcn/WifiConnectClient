@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Wifi Connect Client</string>
+    <string name="clean_messages">Clean All Messages</string>
+    <string name="get_ip_failed">get server ip failed!</string>
+    <string name="ip_or_port_illegal">Ip or port is illegal!</string>
+    <string name="connect_loading">Connecting %1$s . . .</string>
+    <string name="connect_failed">Connect server failed.</string>
+    <string name="connect_success">Connect server success.</string>
+    <string name="connect_closed">Connect closed.</string>
+    <string name="command_error">Command Error!</string>
+    <string name="wait_command">Wait command . . .</string>
+</resources>

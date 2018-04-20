@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Wifi Connect Client</string>
+    <string name="clean_messages">清空</string>
+    <string name="get_ip_failed">获取服务器IP地址失败！</string>
+    <string name="ip_or_port_illegal">IP或端口地址不合法！</string>
+    <string name="connect_loading">连接 %1$s 中 . . .</string>
+    <string name="connect_failed">Connect server failed.</string>
+    <string name="connect_success">Connect server success.</string>
+    <string name="connect_closed">Connect closed.</string>
+    <string name="command_error">Command Error!</string>
+    <string name="wait_command">Wait command.</string>
+</resources>
