@@ -9,4 +9,5 @@
     <string name="connect_closed">Connect closed.</string>
     <string name="command_error">Command Error!</string>
     <string name="wait_command">Wait command . . .</string>
+    <string name="execute_command_error">execute command error!</string>
 </resources>
