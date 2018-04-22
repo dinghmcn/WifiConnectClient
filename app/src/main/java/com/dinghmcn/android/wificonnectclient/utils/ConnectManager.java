@@ -1,5 +1,6 @@
-package com.dinghmcn.android.wificonnectclient;
+package com.dinghmcn.android.wificonnectclient.utils;
 
+import android.net.Uri;
 import android.util.Log;
 import android.os.Handler;
 
@@ -20,19 +21,19 @@ import java.util.concurrent.Executors;
 public class ConnectManager {
     private static final String TAG = ConnectManager.class.getSimpleName();
 
-    static final int CONNECT_FAILED = -1;
-    static final int CONNECT_CLOSED = 0;
-    static final int CONNECT_SUCCESS = 1;
-    static final int COMMAND_RECEIVE = 2;
-    static final int COMMAND_SEND = 3;
-    static final int COMMAND_ERROR = 4;
-    static final int COMMAND_GET_SENSORS = 10;
-    static final int COMMAND_TAKE_PHOTO_FRONT = 20;
-    static final int COMMAND_TAKE_PHOTO_BACK = 21;
-    static final int COMMAND_SHOW_PICTURE = 30;
-    static final int COMMAND_GREEN = 32;
+    public static final int CONNECT_FAILED = -1;
+    public static final int CONNECT_CLOSED = 0;
+    public static final int CONNECT_SUCCESS = 1;
+    public static final int COMMAND_RECEIVE = 2;
+    public static final int COMMAND_SEND = 3;
+    public static final int COMMAND_ERROR = 4;
+    public static final int COMMAND_GET_SENSORS = 10;
+    public static final int COMMAND_TAKE_PHOTO_FRONT = 20;
+    public static final int COMMAND_TAKE_PHOTO_BACK = 21;
+    public static final int COMMAND_SHOW_PICTURE = 30;
+    public static final int COMMAND_GREEN = 32;
 
-    static boolean mConnected = false;
+    public static boolean mConnected = false;
 
     private Handler mMainHandler;
 
@@ -44,8 +45,6 @@ public class ConnectManager {
     private OutputStream out;
     private InputStreamReader isr;
     private BufferedReader br;
-
-    private String mMessage = "";
 
     private static ConnectManager instance = null;
 
@@ -64,14 +63,14 @@ public class ConnectManager {
     }
 
 
-    void connectServer() {
+    public void connectServer() {
         Log.d(TAG, "Connect server.");
         mThreadPool.execute(new Runnable() {
             @Override
             public void run() {
                 try {
                     mSocket = new Socket();
-                    mSocket.connect(mInetSocketAddress, 1000);
+                    mSocket.connect(mInetSocketAddress, 3000);
                     Log.d(TAG, "Connected :" + mSocket.isConnected());
                     if ( mSocket.isConnected()) {
                         mConnected = true;
@@ -89,7 +88,7 @@ public class ConnectManager {
         });
     }
 
-    void receiveMessageFromServer() {
+    public void receiveMessageFromServer() {
         Log.d(TAG, "Receive message.");
         mThreadPool.execute(new Runnable() {
             @Override
@@ -114,7 +113,6 @@ public class ConnectManager {
                         } else {
                             mMainHandler.sendEmptyMessage(COMMAND_ERROR);
                         }
-
                     } catch (IOException e) {
                         Log.d(TAG, "Receive message error.");
                         e.printStackTrace();
@@ -125,15 +123,24 @@ public class ConnectManager {
         });
     }
 
-    void sendMessageToServer(String message){
-        mMessage = message;
-        Log.d(TAG, "Send message :" + mMessage);
+    public void sendFileToServer(Uri feilUri) {
+        Log.d(TAG, "Send File :" + feilUri);
+        sendMessageToServer(feilUri.toString());
+    }
+
+    public void sendMessageToServer(final String message){
+        Log.d(TAG, "Send message :" + message);
         mThreadPool.execute(new Runnable() {
             @Override
             public void run() {
                 try {
+                    Log.d(TAG, "" + !mConnected + mSocket.isClosed() + !mSocket.isConnected() + mSocket.isOutputShutdown());
+                    if (!mConnected || mSocket.isClosed() || !mSocket.isConnected() || mSocket.isOutputShutdown()) {
+                        mMainHandler.sendEmptyMessage(CONNECT_CLOSED);
+                        return;
+                    }
                     out = mSocket.getOutputStream();
-                    out.write(mMessage.getBytes("UTF-8"));
+                    out.write(message.getBytes("UTF-8"));
                     out.flush();
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -142,14 +149,20 @@ public class ConnectManager {
         });
     }
 
-    void disconnectServer() {
+    public void disconnectServer() {
         Log.d(TAG, "Disconnect server.");
         try {
-            if (null != out) {
-                out.close();
+            if (null != is) {
+                is.close();
+            }
+            if (null != isr) {
+                isr.close();
             }
             if (null != br) {
                 br.close();
+            }
+            if (null != out) {
+                out.close();
             }
             if (null != mSocket) {
                 mSocket.close();
@@ -158,6 +171,13 @@ public class ConnectManager {
             }
             if (null != instance) {
                 instance = null;
+            }
+            if (null != mMainHandler) {
+                mMainHandler = null;
+            }
+            if (null != mThreadPool) {
+                mThreadPool.shutdownNow();
+                mThreadPool = null;
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -211,13 +231,5 @@ public class ConnectManager {
 
     public void setmInetSocketAddress(InetSocketAddress mInetSocketAddress) {
         this.mInetSocketAddress = mInetSocketAddress;
-    }
-
-    public String getmMessage() {
-        return mMessage;
-    }
-
-    public void setmMessage(String mMessage) {
-        this.mMessage = mMessage;
     }
 }

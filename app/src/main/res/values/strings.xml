@@ -10,4 +10,5 @@
     <string name="command_error">Command Error!</string>
     <string name="wait_command">Wait command . . .</string>
     <string name="execute_command_error">execute command error!</string>
+    <string name="send_file">Send file:%1$s</string>
 </resources>

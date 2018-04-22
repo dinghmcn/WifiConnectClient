@@ -2,6 +2,7 @@ package com.dinghmcn.android.wificonnectclient;
 
 import android.Manifest;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -15,6 +16,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.dinghmcn.android.wificonnectclient.utils.CheckPermissionUtils;
+import com.dinghmcn.android.wificonnectclient.utils.ConnectManager;
+import com.google.android.cameraview.CameraView;
 import com.uuzuche.lib_zxing.activity.CaptureActivity;
 import com.uuzuche.lib_zxing.activity.CodeUtils;
 import com.uuzuche.lib_zxing.activity.ZXingLibrary;
@@ -32,8 +35,8 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
 
     private static final String TAG = MainActivity.class.getSimpleName();
 
-    private final int REQUEST_SCANNER_CODE = 8;
-    private final int REQUEST_CAMERA_CODE = 9;
+    public static final int REQUEST_SCANNER_CODE = 8;
+    public static final int REQUEST_CAMERA_CODE = 9;
     /**
      * 请求CAMERA权限码
      */
@@ -47,7 +50,7 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
     private StringBuilder mConnectMessage;
 
     private Handler mMainHandler;
-    private ConnectManager mConnectManager;
+    private ConnectManager mConnectManager = null;
 
 
 
@@ -84,31 +87,33 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
                         break;
                     case ConnectManager.COMMAND_TAKE_PHOTO_FRONT:
                         final Intent intent0 = new Intent(MainActivity.this,
-                                CameraActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                .putExtra("camera_id", "1");
+                                CameraActivity.class)
+                                .putExtra("camera_id", CameraView.FACING_FRONT);
                         startActivityForResult(intent0, REQUEST_CAMERA_CODE);
                         break;
                     case ConnectManager.COMMAND_TAKE_PHOTO_BACK:
                         final Intent intent1 = new Intent(MainActivity.this,
-                                CameraActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                .putExtra("camera_id", "0");
+                                CameraActivity.class)
+                                .putExtra("camera_id", CameraView.FACING_BACK);
                         startActivityForResult(intent1, REQUEST_CAMERA_CODE);
                         break;
                         default:
                             outPutLog(Integer.toString(msg.what));
-                            mConnectManager.sendMessageToServer(Integer.toString(msg.what));
+                            if (null != mConnectManager && ConnectManager.mConnected) {
+                                mConnectManager.sendMessageToServer(Integer.toString(msg.what));
+                            }
                 }
             }
         };
 
         ZXingLibrary.initDisplayOpinion(this);
         initPermission();
-        //cameraTask();
+        cameraTask();
 
-        final Intent intent1 = new Intent(MainActivity.this,
-                CameraActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                .putExtra("camera_id", "0");
-        startActivityForResult(intent1, REQUEST_CAMERA_CODE);
+        /*final Intent intent1 = new Intent(MainActivity.this,
+                CameraActivity.class).putExtra("camera_id", CameraView.FACING_FRONT);
+        startActivityForResult(intent1, REQUEST_CAMERA_CODE);*/
+
     }
 
     @Override
@@ -139,10 +144,10 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
                     break;
                 case REQUEST_CAMERA_CODE:
                     if (null != data) {
-                        Bundle bundle = data.getExtras();
-                        if (null != bundle) {
-                            byte[] imageBytes = bundle.getByteArray("image_data");
-                            mConnectManager.sendMessageToServer(imageBytes.toString());
+                        Uri pictureUri = data.getData();
+                        if (null != pictureUri && ConnectManager.mConnected) {
+                            mConnectManager.sendFileToServer(pictureUri);
+                            outPutLog(getString(R.string.send_file, pictureUri.toString()));
                         }
 
                     }
@@ -266,14 +271,13 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
         }
     }
 
-
-
     @Override
     protected void onDestroy() {
-        super.onDestroy();
         ConnectManager.mConnected =false;
         if (null != mConnectManager) {
             mConnectManager.disconnectServer();
+            mConnectManager = null;
         }
+        super.onDestroy();
     }
 }
