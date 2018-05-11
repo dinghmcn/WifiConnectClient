@@ -13,27 +13,19 @@ import java.util.List;
  * @date 2018/4/20 11:31
  **/
 public class CheckPermissionUtils {
-    private CheckPermissionUtils() {
-    }
+  private static String[] permissions = new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.CAMERA};
 
-    //需要申请的权限
-    private static String[] permissions = new String[]{
-            Manifest.permission.WRITE_EXTERNAL_STORAGE,
-            Manifest.permission.READ_EXTERNAL_STORAGE,
-            Manifest.permission.CAMERA
-    };
+  private CheckPermissionUtils() {
+  }
 
-    //检测权限
-    public static String[] checkPermission(Context context){
-        //存储未申请的权限
-        List<String> data = new ArrayList<>();
-        for (String permission : permissions) {
-            int checkSelfPermission = ContextCompat.checkSelfPermission(context, permission);
-            if(checkSelfPermission == PackageManager.PERMISSION_DENIED){
-                //未申请
-                data.add(permission);
-            }
-        }
-        return data.toArray(new String[data.size()]);
+  public static String[] checkPermission(Context context) {
+    List<String> data = new ArrayList<>();
+    for (String permission : permissions) {
+      int checkSelfPermission = ContextCompat.checkSelfPermission(context, permission);
+      if (checkSelfPermission == PackageManager.PERMISSION_DENIED) {
+        data.add(permission);
+      }
     }
+    return data.toArray(new String[data.size()]);
+  }
 }

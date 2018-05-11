@@ -1,6 +1,14 @@
 apply plugin: 'com.android.application'
 
 android {
+    signingConfigs {
+        release {
+            keyAlias 'WifiConnectClien'
+            keyPassword 'rZZQKbF4VLSy'
+            storeFile file('D:/WorkSpace/Android/AndroidStudioProjects/KeyStore.jks')
+            storePassword 'wJyt1jF3yIeL'
+        }
+    }
     compileSdkVersion 27
     defaultConfig {
         applicationId "com.dinghmcn.android.wificonnectclient"
@@ -14,6 +22,7 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
     }
 }

@@ -5,15 +5,16 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".CameraActivity">
+
     <com.google.android.cameraview.CameraView
         android:id="@+id/camera"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:keepScreenOn="true"
         android:adjustViewBounds="true"
-        app:autoFocus="true"
+        android:keepScreenOn="true"
         app:aspectRatio="4:3"
+        app:autoFocus="true"
         app:facing="back"
-        app:flash="auto"/>
+        app:flash="auto" />
 
 </android.support.constraint.ConstraintLayout>

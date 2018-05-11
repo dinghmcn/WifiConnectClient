@@ -11,4 +11,8 @@
     <string name="wait_command">Wait command . . .</string>
     <string name="execute_command_error">execute command error!</string>
     <string name="send_file">Send file:%1$s</string>
+    <string name="file_not_exist">%1$s don\'t exist!</string>
+    <string name="show_file">Show %1$s.</string>
+    <string name="software_expired">Software is Expired.</string>
+    <string name="connect_info_error">Connect info errror!</string>
 </resources>
