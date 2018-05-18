@@ -26,13 +26,14 @@ import com.uuzuche.lib_zxing.activity.CaptureActivity;
 import com.uuzuche.lib_zxing.activity.CodeUtils;
 import com.uuzuche.lib_zxing.activity.ZXingLibrary;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.lang.ref.WeakReference;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.List;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import pub.devrel.easypermissions.AfterPermissionGranted;
 import pub.devrel.easypermissions.AppSettingsDialog;
@@ -56,8 +57,18 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
    */
   public static final int REQUEST_CAMERA_CODE = 9;
   private static final String TAG = MainActivity.class.getSimpleName();
-  private static final String COMPILE_DATE = "2018-04-26";
-  private static final int EXPIRED_DAYS = 7;
+  private static final String COMPILE_DATE = "2018-05-18";
+  private static final int EXPIRED_DAYS = 15;
+  private static boolean isReleased = false;
+
+  private static boolean isCatchKey = false;
+  private static boolean isCatchTouch = false;
+
+  private static JSONObject mKeyJsonObject;
+  private static JSONObject mTouchJsonObject;
+  private static JSONArray mTouchJsonArray;
+
+  private static final int REQUEST_FUNCTION_FINGER = 102;
   /**
    * 请求CAMERA权限码.
    */
@@ -98,14 +109,13 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
       mWifiManagerUtils.openWifi();
     }
 
-    if (TimeUtils.isExpired(this, COMPILE_DATE, EXPIRED_DAYS)) {
+    if (!isReleased && TimeUtils.isExpired(this, COMPILE_DATE, EXPIRED_DAYS)) {
       outPutLog(R.string.software_expired);
       return;
     }
 
     initPermission();
     ZXingLibrary.initDisplayOpinion(this);
-
   }
 
   /**
@@ -267,29 +277,61 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
    */
   @Override
   public boolean onKeyDown(int keyCode, KeyEvent event) {
-    JSONObject jsonObject = new JSONObject();
-    Message message = Message.obtain();
-    message.what = EnumCommand.FUNCTION.ordinal();
-    try {
-      jsonObject.putOpt("Key", KeyEvent.keyCodeToString(keyCode));
-    } catch (JSONException e) {
-      e.printStackTrace();
+    if (isCatchKey) {
+      outPutLog(keyCode + "|" + KeyEvent.keyCodeToString(keyCode));
+      if (mKeyJsonObject == null) {
+        mKeyJsonObject = new JSONObject();
+      }
+      try {
+        mKeyJsonObject.putOpt(KeyEvent.keyCodeToString(keyCode), keyCode);
+      } catch (JSONException e) {
+        e.printStackTrace();
+      }
+      return true;
     }
-    message.obj = jsonObject;
-    mMainHandler.sendMessage(message);
-    return true;
+    return super.onKeyDown(keyCode, event);
   }
 
-  /**
-   * On touch event boolean.
-   *
-   * @param event the event
-   * @return the boolean
-   */
   @Override
-  public boolean onTouchEvent(MotionEvent event) {
-
-    return true;
+  public boolean dispatchTouchEvent(MotionEvent ev) {
+    Log.d(TAG,"onTouchEvent");
+    if (isCatchTouch) {
+      if (mTouchJsonArray == null) {
+        mTouchJsonArray = new JSONArray();
+      }
+      switch (ev.getAction()) {
+        case MotionEvent.ACTION_DOWN:
+          Log.d(TAG,"down");
+          mTouchJsonObject = new JSONObject();
+          try {
+            mTouchJsonObject.put("DOWN", "(" + ev.getRawX() + "," + ev.getRawY() + ")");
+          } catch (JSONException e) {
+            e.printStackTrace();
+          }
+          break;
+        case MotionEvent.ACTION_MOVE:
+          Log.d(TAG,"move");
+          try {
+            mTouchJsonObject.put("MOVE" + (mTouchJsonObject.length() - 1), "(" + ev.getRawX() + "," + ev.getRawY() + ")");
+          } catch (JSONException e) {
+            e.printStackTrace();
+          }
+          break;
+        case MotionEvent.ACTION_UP:
+          Log.d(TAG,"up");
+          try {
+            mTouchJsonObject.put("UP", "(" + ev.getRawX() + "," + ev.getRawY() + ")");
+          } catch (JSONException e) {
+            e.printStackTrace();
+          }
+          mTouchJsonArray.put(mTouchJsonObject);
+          Log.d(TAG, mTouchJsonObject.toString() + " | " + mTouchJsonArray.toString());
+          mTouchJsonObject = null;
+          break;
+      }
+      return true;
+    }
+    return super.dispatchTouchEvent(ev);
   }
 
   /**
@@ -313,7 +355,7 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
       } catch (JSONException e) {
         e.printStackTrace();
       }
-      String serverIp = jsonObject.optString("SSID", "");
+      String serverIp = jsonObject.optString("IP", "");
       int serverPort = jsonObject.optInt("Port", -1);
       String wifiSsid = jsonObject.optString("SSID", "");
       String wifiPassword = jsonObject.optString("PWD", "");
@@ -404,6 +446,9 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
             case ConnectManagerUtils.COMMAND_RECEIVE:
               mainActivity.outPutLog(R.string.wait_command);
               break;
+            case ConnectManagerUtils.COMMAND_SEND:
+              mainActivity.outPutLog(msg.obj.toString());
+              break;
             default:
           }
           break;
@@ -415,8 +460,8 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
           break;
         case SHOW_PICTURE:
           String imageName;
-          JSONObject jsonObject = (JSONObject) msg.obj;
-          imageName = jsonObject.optString("FileName", "");
+          final JSONObject sJsonObject = (JSONObject) msg.obj;
+          imageName = sJsonObject.optString("FileName", "");
           int resId = mainActivity.getResources().getIdentifier(imageName, "drawable",
               mainActivity.getPackageName());
           if (resId > 0) {
@@ -442,7 +487,39 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
           }, 1000);
           break;
         case FUNCTION:
-          mainActivity.mConnectManager.sendMessageToServer(msg.obj.toString());
+          JSONObject fJsonObject = (JSONObject) msg.obj;
+          String content = fJsonObject.optString("Content");
+          final int time = fJsonObject.optInt("Time", 8) * 1000;
+          switch (content) {
+            case "Key":
+              isCatchKey = true;
+              postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                  if (mKeyJsonObject != null) {
+                    mainActivity.mConnectManager.sendMessageToServer(mKeyJsonObject.toString());
+                  }
+                  mKeyJsonObject = null;
+                  isCatchKey = false;
+                }
+              }, time);
+              break;
+            case "Touch":
+              isCatchTouch =true;
+              postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                  if (mTouchJsonArray != null) {
+                    mainActivity.mConnectManager.sendMessageToServer(mTouchJsonArray.toString());
+                  }
+                  mTouchJsonArray = null;
+                  isCatchTouch = false;
+                }
+              }, time);
+              break;
+            case "Finger":
+              break;
+          }
           break;
         default:
           mainActivity.outPutLog(Integer.toString(msg.what));

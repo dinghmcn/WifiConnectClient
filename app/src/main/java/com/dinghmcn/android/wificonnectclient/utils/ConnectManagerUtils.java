@@ -244,6 +244,7 @@ public class ConnectManagerUtils {
 
             if (null != command && !command.isEmpty()) {
               parsingCommand(command);
+              sendMessage(EnumCommand.COMMAND.ordinal(), COMMAND_SEND, command);
             } else {
               sendMessage(EnumCommand.COMMAND.ordinal(), COMMAND_ERROR);
             }
@@ -307,6 +308,7 @@ public class ConnectManagerUtils {
    */
   public void sendMessageToServer(final String message) {
     Log.d(TAG, "Send message :" + message);
+    sendMessage(EnumCommand.COMMAND.ordinal(), COMMAND_SEND, message);
     mThreadPool.execute(new Runnable() {
       @Override
       public void run() {
@@ -317,7 +319,7 @@ public class ConnectManagerUtils {
             return;
           }
           out = mSocket.getOutputStream();
-          out.write(message.getBytes("UTF-8"));
+          out.write((message + "/r/n").getBytes("UTF-8"));
           out.flush();
         } catch (IOException e) {
           e.printStackTrace();
@@ -369,23 +371,21 @@ public class ConnectManagerUtils {
 
     String command = jsonObject.optString("Command", "");
     if (!command.isEmpty()) {
-      sendMessage(EnumCommand.valueOf(command.toUpperCase()).ordinal(), jsonObject);
+      sendMessage(EnumCommand.valueOf(command.toUpperCase()).ordinal(), -1, jsonObject);
     } else {
       sendMessage(EnumCommand.COMMAND.ordinal(), COMMAND_ERROR);
     }
   }
 
   private void sendMessage(int what, int arg1) {
+    sendMessage(what, arg1, null);
+  }
+
+  private void sendMessage(int what, int arg1, Object obj) {
     Message message = Message.obtain();
     message.what = what;
     message.arg1 = arg1;
-    mMainHandler.sendMessage(message);
-  }
-
-  private void sendMessage(int what, JSONObject jsonObject) {
-    Message message = Message.obtain();
-    message.what = what;
-    message.obj = jsonObject;
+    message.obj = obj;
     mMainHandler.sendMessage(message);
   }
 

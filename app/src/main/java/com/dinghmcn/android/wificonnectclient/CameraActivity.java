@@ -84,14 +84,13 @@ public class CameraActivity extends AppCompatActivity implements ActivityCompat.
     mCameraView = findViewById(R.id.camera);
 
     if (null != mCameraView) {
-      mCameraView.addCallback(mCallback);
+      init();
     }
   }
 
-  @Override
-  protected void onResume() {
-    super.onResume();
-    Log.d(TAG, "onResume()");
+  private void init() {
+    mCameraView.addCallback(mCallback);
+    mCameraView.start();
 
     String parameter = getIntent().getStringExtra("camera_parameter");
     JSONObject jsonObject = null;
@@ -100,21 +99,23 @@ public class CameraActivity extends AppCompatActivity implements ActivityCompat.
     } catch (JSONException e) {
       e.printStackTrace();
     }
-    int cameraId = jsonObject.optInt("Camera", CameraView.FACING_BACK);
+    int cameraId = jsonObject.optInt("CameraId", CameraView.FACING_BACK);
     Log.d(TAG, "cameraId : " + cameraId);
     mCameraView.setFacing(cameraId);
 
     String resolutionRatio = jsonObject.optString("ResolutionRatio", "");
     if (!resolutionRatio.isEmpty()) {
-      mCameraView.setAspectRatio(AspectRatio.parse(resolutionRatio));
+      setPictureSize(resolutionRatio);
     }
 
-    boolean isFocus = jsonObject.optInt("IsFocus", 1) == 1;
+    boolean isFocus = jsonObject.optBoolean("IsFocus", true);
     mCameraView.setAutoFocus(isFocus);
 
-    mCompressionRatio = jsonObject.optInt("CompressionRatio", 1);
+    int flash = jsonObject.optInt("FlashMode", 3);
+    mCameraView.setFlash(flash);
 
-    mCameraView.start();
+    mCompressionRatio = jsonObject.optInt("CompressionRatio", 1);
+    Log.d(TAG, "ratio:" + mCameraView.getAspectRatio().toString());
 
     getBackgroundHandler().postDelayed(new Runnable() {
       @Override
@@ -129,6 +130,7 @@ public class CameraActivity extends AppCompatActivity implements ActivityCompat.
     mCameraView.stop();
     super.onPause();
     Log.d(TAG, "onPause()");
+    finish();
   }
 
   @Override
@@ -176,6 +178,10 @@ public class CameraActivity extends AppCompatActivity implements ActivityCompat.
     try {
       mPictureWidth = Integer.parseInt(s.substring(0, position));
       mPictureHeight = Integer.parseInt(s.substring(position + 1));
+      float ratio = 1F * mPictureWidth / mPictureHeight;
+      mCameraView.setAspectRatio(AspectRatio.of(mPictureWidth, mPictureHeight));
+      Log.d(TAG, "ratio:" + ratio + "|" + mCameraView.getAspectRatio().toString());
+      Log.d(TAG, "ratios:" + mCameraView.getSupportedAspectRatios().size());
     } catch (NumberFormatException e) {
       throw new IllegalArgumentException("Malformed aspect ratio: " + s, e);
     }
@@ -189,8 +195,8 @@ public class CameraActivity extends AppCompatActivity implements ActivityCompat.
    */
   private void compressBySize(byte[] data, int compressionRatio) {
 
-    Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
-    bitmap = zoomImage(bitmap, mPictureWidth, mPictureHeight);
+    Bitmap bitmap = BitmapFactory.decodeByteArray (data, 0, data.length);
+    bitmap = zoomImage(bitmap, mPictureHeight, mPictureWidth);
 
     if (compressionRatio > 1) {
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -239,6 +245,9 @@ public class CameraActivity extends AppCompatActivity implements ActivityCompat.
     float scaleHeight = 1F * newHeight / oldHeight;
 
     float scale = scaleWidth > scaleHeight ? scaleHeight : scaleWidth;
+    Log.d(TAG, oldWidth + ":" + oldHeight);
+    Log.d(TAG, newWidth+ ":" + newHeight);
+    Log.d(TAG, scale + ":"  + scaleWidth + ":" + scaleHeight);
 
     Matrix matrix = new Matrix();
     matrix.postScale(scale, scale);

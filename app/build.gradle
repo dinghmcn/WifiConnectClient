@@ -14,8 +14,8 @@ android {
         applicationId "com.dinghmcn.android.wificonnectclient"
         minSdkVersion 23
         targetSdkVersion 27
-        versionCode 1
-        versionName "1.0"
+        versionCode 20180518
+        versionName "0.20180518"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
@@ -25,11 +25,13 @@ android {
             signingConfig signingConfigs.release
         }
     }
+    buildToolsVersion '27.0.3'
 }
 
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation 'com.android.support:appcompat-v7:27.1.1'
+    implementation 'com.android.support:support-v4:27.1.1'
     implementation 'com.android.support.constraint:constraint-layout:1.1.0'
     implementation 'cn.yipianfengye.android:zxing-library:2.2'
     implementation 'pub.devrel:easypermissions:0.2.0'
