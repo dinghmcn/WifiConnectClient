@@ -4,10 +4,8 @@ import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.util.Log;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -18,9 +16,11 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 /**
  * The type Connect manager.
@@ -59,11 +59,14 @@ public class ConnectManagerUtils {
    * The constant mConnected.
    */
   public static boolean mConnected = false;
+  @Nullable
   private static ConnectManagerUtils instance = null;
+  @Nullable
   private Handler mMainHandler;
 
   private InetSocketAddress mInetSocketAddress;
   private Socket mSocket;
+  @Nullable
   private ExecutorService mThreadPool;
 
   private InputStream is;
@@ -73,12 +76,8 @@ public class ConnectManagerUtils {
     mMainHandler = handler;
     mInetSocketAddress = inetSocketAddress;
 
-    mThreadPool = new ThreadPoolExecutor(5, 9, 5, TimeUnit.SECONDS, new LinkedBlockingDeque<Runnable>(), new ThreadFactory() {
-      @Override
-      public Thread newThread(@NonNull Runnable r) {
-        return new Thread(r, "ConnectManagerUtils");
-      }
-    });
+    mThreadPool = new ThreadPoolExecutor(5, 9, 5, TimeUnit.SECONDS,
+        new LinkedBlockingDeque<>(), r -> new Thread(r, "ConnectManagerUtils"));
   }
 
   /**
@@ -88,7 +87,9 @@ public class ConnectManagerUtils {
    * @param inetSocketAddress the inet socket address
    * @return the connect manager
    */
-  public static ConnectManagerUtils newInstance(Handler handler, InetSocketAddress inetSocketAddress) {
+  @Nullable
+  public static ConnectManagerUtils newInstance(Handler handler,
+      InetSocketAddress inetSocketAddress) {
     if (null == instance) {
       instance = new ConnectManagerUtils(handler, inetSocketAddress);
     }
@@ -101,20 +102,19 @@ public class ConnectManagerUtils {
    * return true，合法.
    *
    * @param ipAddress ip address
-   * @return
+   * @return boolean boolean
    */
-  public static boolean isIp(String ipAddress) {
+  public static boolean isIp(@Nullable String ipAddress) {
     if (null != ipAddress && !ipAddress.isEmpty()) {
       // 定义正则表达式
-      String regex = new StringBuilder().append("^(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|[1-9])\\.").append("(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|\\d)\\.").append("(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|\\d)\\.").append("(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|\\d)$").toString();
+      String regex = "^(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|[1-9])\\."
+          + "(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|\\d)\\."
+          + "(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|\\d)\\."
+          + "(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|\\d)$";
       // 判断ip地址是否与正则表达式匹配
-      if (ipAddress.matches(regex)) {
-        // 返回判断信息
-        return true;
-      } else {
-        // 返回判断信息
-        return false;
-      }
+      // 返回判断信息
+      // 返回判断信息
+      return ipAddress.matches(regex);
     }
     return false;
   }
@@ -125,139 +125,143 @@ public class ConnectManagerUtils {
    * @param str the str
    * @return the boolean
    */
-  public static boolean isInteger(String str) {
+  public static boolean isInteger(@Nullable String str) {
     if (null == str || str.isEmpty()) {
       return false;
     }
-    String regex = "^[-\\+]?[\\d]*$";
+    String regex = "^[-+]?[\\d]*$";
     return str.matches(regex);
   }
 
   /**
    * Connect server.
+   *
+   * @param wifiManagerUtils the wifi manager utils
+   * @param wifissid         the wifissid
+   * @param wifiPassWord     the wifi pass word
    */
-  public void connectServer(final WifiManagerUtils wifiManagerUtils, final String wifissid, final String wifiPassWord) {
+  public void connectServer(@NonNull final WifiManagerUtils wifiManagerUtils,
+      @NonNull final String wifissid,
+      final String wifiPassWord) {
     Log.d(TAG, "Connect server.");
-    mThreadPool.execute(new Runnable() {
-      @Override
-      public void run() {
-        long delayedTime = 8000L;
-        long start = System.currentTimeMillis();
-        while (System.currentTimeMillis() < start + delayedTime) {
-          if (wifiManagerUtils.isWifiEnabled()) {
-            if (!wifiManagerUtils.isWifiConnected(wifissid)) {
-              wifiManagerUtils.connectWifi(wifissid, wifiPassWord);
-              try {
-                Thread.sleep(1000);
-              } catch (InterruptedException e) {
-                e.printStackTrace();
-              }
-            } else {
-              break;
-            }
-          } else {
-            wifiManagerUtils.openWifi();
+    mThreadPool.execute(() -> {
+      long delayedTime = 8000L;
+      long start = System.currentTimeMillis();
+      while (System.currentTimeMillis() < start + delayedTime) {
+        if (wifiManagerUtils.isWifiEnabled()) {
+          if (!wifiManagerUtils.isWifiConnected(wifissid)) {
+            wifiManagerUtils.connectWifi(wifissid, wifiPassWord);
             try {
               Thread.sleep(1000);
             } catch (InterruptedException e) {
               e.printStackTrace();
             }
+          } else {
+            break;
           }
-        }
-
-        if (wifiManagerUtils.isWifiConnected(wifissid)) {
-          Log.e(TAG, "Connect Wifi success!");
         } else {
-          Log.e(TAG, "Connect Wifi failed!");
-        }
-
-        start = System.currentTimeMillis();
-        while (System.currentTimeMillis() < start + delayedTime) {
-          Process process = null;
+          wifiManagerUtils.openWifi();
           try {
-            process = Runtime.getRuntime().exec("/system/bin/ping -c 1 -w 100 " + mInetSocketAddress.getHostName());
-          } catch (IOException e) {
-            e.printStackTrace();
-          }
-          int status;
-          try {
-            status = process.waitFor();
-            if (status == 0) {
-              break;
-            }
             Thread.sleep(1000);
           } catch (InterruptedException e) {
             e.printStackTrace();
           }
         }
+      }
 
+      if (wifiManagerUtils.isWifiConnected(wifissid)) {
+        Log.e(TAG, "Connect Wifi success!");
+      } else {
+        Log.e(TAG, "Connect Wifi failed!");
+      }
 
-        mSocket = new Socket();
+      start = System.currentTimeMillis();
+      while (System.currentTimeMillis() < start + delayedTime) {
+        Process process = null;
         try {
-          mSocket.connect(mInetSocketAddress, 3000);
+          process = Runtime.getRuntime()
+              .exec(
+                  "/system/bin/ping -c 1 -w 100 "
+                      + mInetSocketAddress.getHostName());
         } catch (IOException e) {
           e.printStackTrace();
         }
-        Log.d(TAG, "Connected :" + mSocket.isConnected());
-        if (mSocket.isConnected()) {
-          mConnected = true;
-          receiveMessageFromServer();
-          sendMessage(EnumCommand.CONNECT.ordinal(), CONNECT_SUCCESS);
-        } else {
-          sendMessage(EnumCommand.CONNECT.ordinal(), CONNECT_FAILED);
+        int status;
+        try {
+          status = process != null ? process.waitFor() : 0;
+          if (status == 0) {
+            break;
+          }
+          Thread.sleep(1000);
+        } catch (InterruptedException e) {
+          e.printStackTrace();
         }
-
       }
+
+
+      mSocket = new Socket();
+      try {
+        mSocket.connect(mInetSocketAddress, 3000);
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+      Log.d(TAG, "Connected :" + mSocket.isConnected());
+      if (mSocket.isConnected()) {
+        mConnected = true;
+        receiveMessageFromServer();
+        sendMessage(EnumCommand.CONNECT.ordinal(), CONNECT_SUCCESS);
+      } else {
+        sendMessage(EnumCommand.CONNECT.ordinal(), CONNECT_FAILED);
+      }
+
     });
   }
 
   /**
    * Receive message from server.
    */
-  public void receiveMessageFromServer() {
+  private void receiveMessageFromServer() {
     Log.d(TAG, "Receive message.");
-    mThreadPool.execute(new Runnable() {
-      @Override
-      public void run() {
-        sendMessage(EnumCommand.COMMAND.ordinal(), COMMAND_RECEIVE);
-        int commandNullCount = 0;
-        while (mConnected && !mSocket.isClosed() && mSocket.isConnected() && !mSocket.isInputShutdown()) {
-          Log.d(TAG, "Start receive message.");
-          try {
-            is = mSocket.getInputStream();
-            String command = "";
-            byte[] tempBuffer = new byte[2048];
-            int numReadedBytes = is.read(tempBuffer, 0, tempBuffer.length);
-            if (numReadedBytes > 0) {
-              command = new String(tempBuffer, 0, numReadedBytes);
+    mThreadPool.execute(() -> {
+      sendMessage(EnumCommand.COMMAND.ordinal(), COMMAND_RECEIVE);
+      int commandNullCount = 0;
+      while (mConnected && !mSocket.isClosed() && mSocket.isConnected()
+          && !mSocket.isInputShutdown()) {
+        Log.d(TAG, "Start receive message.");
+        try {
+          is = mSocket.getInputStream();
+          String command;
+          byte[] tempBuffer = new byte[2048];
+          int numReadedBytes = is.read(tempBuffer, 0, tempBuffer.length);
+          if (numReadedBytes > 0) {
+            command = new String(tempBuffer, 0, numReadedBytes);
+          } else {
+            ++commandNullCount;
+            Log.d(TAG, "Command is null:" + commandNullCount);
+            if (commandNullCount > 3) {
+              sendMessage(EnumCommand.CONNECT.ordinal(), CONNECT_CLOSED);
+              return;
             } else {
-              ++commandNullCount;
-              Log.d(TAG, "Command is null:" + commandNullCount);
-              if (commandNullCount > 3) {
-                sendMessage(EnumCommand.CONNECT.ordinal(), CONNECT_CLOSED);
-                return;
-              } else {
-                continue;
-              }
+              continue;
             }
-            Log.d(TAG, "Command:" + command);
-
-            if (null != command && !command.isEmpty()) {
-              parsingCommand(command);
-              sendMessage(EnumCommand.COMMAND.ordinal(), COMMAND_SEND, command);
-            } else {
-              sendMessage(EnumCommand.COMMAND.ordinal(), COMMAND_ERROR);
-            }
-          } catch (IOException e) {
-            Log.d(TAG, "Receive message error.");
-            e.printStackTrace();
           }
-        }
-        if (null != mMainHandler) {
-          sendMessage(EnumCommand.CONNECT.ordinal(), CONNECT_CLOSED);
-        }
+          Log.d(TAG, "Command:" + command);
 
+          if (!command.isEmpty()) {
+            parsingCommand(command);
+            sendMessage(EnumCommand.COMMAND.ordinal(), COMMAND_SEND, command);
+          } else {
+            sendMessage(EnumCommand.COMMAND.ordinal(), COMMAND_ERROR);
+          }
+        } catch (IOException e) {
+          Log.d(TAG, "Receive message error.");
+          e.printStackTrace();
+        }
       }
+      if (null != mMainHandler) {
+        sendMessage(EnumCommand.CONNECT.ordinal(), CONNECT_CLOSED);
+      }
+
     });
   }
 
@@ -266,37 +270,36 @@ public class ConnectManagerUtils {
    *
    * @param fileUri the file uri
    */
-  public void sendFileToServer(final Uri fileUri) {
+  public void sendFileToServer(@NonNull final Uri fileUri) {
     Log.d(TAG, "Send File :" + fileUri);
-    mThreadPool.execute(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          Log.d(TAG, "" + !mConnected + mSocket.isClosed() + !mSocket.isConnected() + mSocket.isOutputShutdown());
-          if (!mConnected || mSocket.isClosed() || !mSocket.isConnected() || mSocket.isOutputShutdown()) {
-            sendMessage(EnumCommand.CONNECT.ordinal(), CONNECT_CLOSED);
-            return;
-          }
-
-          File file = new File(fileUri.getPath());
-          out = mSocket.getOutputStream();
-
-          out.write(file.getName().getBytes("UTF-8"));
-          out.flush();
-
-          OutputStream outputData = mSocket.getOutputStream();
-          FileInputStream fileInput = new FileInputStream(file);
-          int size = -1;
-          byte[] buffer = new byte[1024];
-          //noinspection AlibabaUndefineMagicConstant
-          final int maxSize = 1024;
-          while ((size = fileInput.read(buffer, 0, maxSize)) != -1) {
-            outputData.write(buffer, 0, size);
-          }
-          out.flush();
-        } catch (IOException e) {
-          e.printStackTrace();
+    mThreadPool.execute(() -> {
+      try {
+        Log.d(TAG, "" + !mConnected + mSocket.isClosed() + !mSocket.isConnected()
+            + mSocket.isOutputShutdown());
+        if (!mConnected || mSocket.isClosed() || !mSocket.isConnected()
+            || mSocket.isOutputShutdown()) {
+          sendMessage(EnumCommand.CONNECT.ordinal(), CONNECT_CLOSED);
+          return;
         }
+
+        File file = new File(fileUri.getPath());
+        out = mSocket.getOutputStream();
+
+        out.write(file.getName()
+            .getBytes("UTF-8"));
+        out.flush();
+
+        OutputStream outputData = mSocket.getOutputStream();
+        FileInputStream fileInput = new FileInputStream(file);
+        int size;
+        byte[] buffer = new byte[1024];
+        final int maxSize = 1024;
+        while ((size = fileInput.read(buffer, 0, maxSize)) != -1) {
+          outputData.write(buffer, 0, size);
+        }
+        out.flush();
+      } catch (IOException e) {
+        e.printStackTrace();
       }
     });
   }
@@ -309,21 +312,20 @@ public class ConnectManagerUtils {
   public void sendMessageToServer(final String message) {
     Log.d(TAG, "Send message :" + message);
     sendMessage(EnumCommand.COMMAND.ordinal(), COMMAND_SEND, message);
-    mThreadPool.execute(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          Log.d(TAG, "" + !mConnected + mSocket.isClosed() + !mSocket.isConnected() + mSocket.isOutputShutdown());
-          if (!mConnected || mSocket.isClosed() || !mSocket.isConnected() || mSocket.isOutputShutdown()) {
-            sendMessage(EnumCommand.CONNECT.ordinal(), CONNECT_CLOSED);
-            return;
-          }
-          out = mSocket.getOutputStream();
-          out.write((message + "/r/n").getBytes("UTF-8"));
-          out.flush();
-        } catch (IOException e) {
-          e.printStackTrace();
+    mThreadPool.execute(() -> {
+      try {
+        Log.d(TAG, "" + !mConnected + mSocket.isClosed() + !mSocket.isConnected()
+            + mSocket.isOutputShutdown());
+        if (!mConnected || mSocket.isClosed() || !mSocket.isConnected()
+            || mSocket.isOutputShutdown()) {
+          sendMessage(EnumCommand.CONNECT.ordinal(), CONNECT_CLOSED);
+          return;
         }
+        out = mSocket.getOutputStream();
+        out.write((message + "/r/n").getBytes("UTF-8"));
+        out.flush();
+      } catch (IOException e) {
+        e.printStackTrace();
       }
     });
   }
@@ -369,9 +371,13 @@ public class ConnectManagerUtils {
       e.printStackTrace();
     }
 
-    String command = jsonObject.optString("Command", "");
+    String command = null;
+    if (jsonObject != null) {
+      command = jsonObject.optString("Command", "Error");
+    }
     if (!command.isEmpty()) {
-      sendMessage(EnumCommand.valueOf(command.toUpperCase()).ordinal(), -1, jsonObject);
+      sendMessage(EnumCommand.valueOf(command.toUpperCase())
+          .ordinal(), -1, jsonObject);
     } else {
       sendMessage(EnumCommand.COMMAND.ordinal(), COMMAND_ERROR);
     }
@@ -394,6 +400,7 @@ public class ConnectManagerUtils {
    *
    * @return the main handler
    */
+  @Nullable
   public Handler getmMainHandler() {
     return mMainHandler;
   }
@@ -425,10 +432,33 @@ public class ConnectManagerUtils {
     this.mInetSocketAddress = mInetSocketAddress;
   }
 
+  /**
+   * The enum Enum command.
+   */
   public enum EnumCommand {
     /**
-     * mMainHandel what.
+     * Connect enum command.
      */
-    CONNECT, COMMAND, SENSOR, CAMERA, SHOW_PICTURE, FUNCTION
+    CONNECT,
+    /**
+     * Command enum command.
+     */
+    COMMAND,
+    /**
+     * Sensor enum command.
+     */
+    SENSOR,
+    /**
+     * Camera enum command.
+     */
+    CAMERA,
+    /**
+     * Function enum command.
+     */
+    FUNCTION,
+    /**
+     * Show picture enum command.
+     */
+    SHOW_PICTURE
   }
 }

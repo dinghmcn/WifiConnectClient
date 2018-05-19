@@ -5,24 +5,31 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-
-import org.json.JSONException;
-import org.json.JSONObject;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import java.util.Arrays;
 import java.util.List;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 /**
+ * The type Sensor manager utils.
+ *
  * @author dinghmcn
- * @date 2018/4/28 15:35
- **/
+ * @date 2018 /4/28 15:35
+ */
 public class SensorManagerUtils implements SensorEventListener {
   private static final String TAG = "SensorManagerUtils";
 
+  @Nullable
   private static SensorManagerUtils instance = null;
+  @NonNull
   private List<Integer> mSensorList = Arrays.asList(Sensor.TYPE_MAGNETIC_FIELD,
       Sensor.TYPE_PROXIMITY, Sensor.TYPE_LIGHT, Sensor.TYPE_ACCELEROMETER, Sensor.TYPE_GYROSCOPE);
   private SensorManager mSensorManager;
+  @NonNull
   private JSONObject mJSONObject = new JSONObject();
 
   private SensorManagerUtils(Context context) {
@@ -30,15 +37,27 @@ public class SensorManagerUtils implements SensorEventListener {
     registerListeners();
   }
 
-  public static SensorManagerUtils getInstance(Context context) {
+  /**
+   * Gets instance.
+   *
+   * @param context the context
+   * @return the instance
+   */
+  @Nullable
+  public static SensorManagerUtils getInstance(@NonNull Context context) {
     if (null == instance) {
       instance = new SensorManagerUtils(context);
     }
     return instance;
   }
 
+  /**
+   * On sensor changed.
+   *
+   * @param event the event
+   */
   @Override
-  public void onSensorChanged(SensorEvent event) {
+  public void onSensorChanged(@NonNull SensorEvent event) {
     try {
       mJSONObject.put(event.sensor.getName(), Arrays.toString(event.values));
     } catch (JSONException e) {
@@ -46,6 +65,12 @@ public class SensorManagerUtils implements SensorEventListener {
     }
   }
 
+  /**
+   * On accuracy changed.
+   *
+   * @param sensor   the sensor
+   * @param accuracy the accuracy
+   */
   @Override
   public void onAccuracyChanged(Sensor sensor, int accuracy) {
 
@@ -53,10 +78,17 @@ public class SensorManagerUtils implements SensorEventListener {
 
   private void registerListeners() {
     for (int sensor : mSensorList) {
-      mSensorManager.registerListener(this, mSensorManager.getDefaultSensor(sensor), SensorManager.SENSOR_DELAY_UI);
+      mSensorManager.registerListener(this, mSensorManager.getDefaultSensor(sensor),
+          SensorManager.SENSOR_DELAY_UI);
     }
   }
 
+  /**
+   * Gets json object.
+   *
+   * @return the json object
+   */
+  @NonNull
   public JSONObject getJSONObject() {
     return mJSONObject;
   }

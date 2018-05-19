@@ -6,15 +6,18 @@ import android.net.NetworkInfo;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
 import java.util.List;
 
 /**
+ * The type Wifi manager utils.
+ *
  * @author dinghmcn
- * @date 2018/4/25 16:09
- **/
+ * @date 2018 /4/25 16:09
+ */
 public class WifiManagerUtils {
   private static final String TAG = "WifiManagerUtils";
 
@@ -22,6 +25,7 @@ public class WifiManagerUtils {
   private static final int WIFICIPHER_WEP = 1;
   private static final int WIFICIPHER_WPA = 2;
 
+  @Nullable
   private static WifiManagerUtils instance = null;
 
   private static Context mContext;
@@ -29,24 +33,40 @@ public class WifiManagerUtils {
 
   private WifiManagerUtils(Context context) {
     mContext = context;
-    mWifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+    mWifiManager = (WifiManager) context.getApplicationContext()
+        .getSystemService(Context.WIFI_SERVICE);
   }
 
-  public static WifiManagerUtils getInstance(Context context) {
+  /**
+   * Gets instance.
+   *
+   * @param context the context
+   * @return the instance
+   */
+  @Nullable
+  public static WifiManagerUtils getInstance(@NonNull Context context) {
     if (instance == null) {
       instance = new WifiManagerUtils(context);
     }
     return instance;
   }
 
-  public boolean connectWifi(String ssid, String password) {
+  /**
+   * Connect wifi boolean.
+   *
+   * @param ssid     the ssid
+   * @param password the password
+   * @return the boolean
+   */
+  public boolean connectWifi(@NonNull String ssid, String password) {
     Log.d(TAG, "SSID:" + ssid + " password:" + password);
 
     //如果之前有类似的配置
     WifiConfiguration tempConfig = isExist(ssid);
     if (tempConfig != null) {
       //则清除旧有配置
-      int netId = mWifiManager.updateNetwork(createWifiConfig(ssid, password, getType(ssid), tempConfig.networkId));
+      int netId = mWifiManager.updateNetwork(
+          createWifiConfig(ssid, password, getType(ssid), tempConfig.networkId));
       Log.d(TAG, "netId1:" + netId);
       return mWifiManager.enableNetwork(netId, true);
     } else {
@@ -56,15 +76,28 @@ public class WifiManagerUtils {
     }
   }
 
+  /**
+   * Is wifi enabled boolean.
+   *
+   * @return the boolean
+   */
   public boolean isWifiEnabled() {
     Log.d(TAG, "isWifiEnabled():" + mWifiManager.isWifiEnabled());
     return mWifiManager.isWifiEnabled();
   }
 
+  /**
+   * Is wifi connected boolean.
+   *
+   * @param ssid the ssid
+   * @return the boolean
+   */
   public boolean isWifiConnected(String ssid) {
-    ConnectivityManager connectivityManager = (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+    ConnectivityManager connectivityManager = (ConnectivityManager) mContext.getSystemService(
+        Context.CONNECTIVITY_SERVICE);
     NetworkInfo activeNetInfo = connectivityManager.getActiveNetworkInfo();
-    if (activeNetInfo != null && activeNetInfo.getType() == ConnectivityManager.TYPE_WIFI && activeNetInfo.isConnected()) {
+    if (activeNetInfo != null && activeNetInfo.getType() == ConnectivityManager.TYPE_WIFI
+        && activeNetInfo.isConnected()) {
       Log.d(TAG, activeNetInfo.toString());
       Log.d(TAG, "isWifiConnected():" + ('"' + ssid + '"').equals(activeNetInfo.getExtraInfo()));
       return ('"' + ssid + '"').equals(activeNetInfo.getExtraInfo());
@@ -73,10 +106,14 @@ public class WifiManagerUtils {
     return false;
   }
 
+  /**
+   * Open wifi.
+   */
   public void openWifi() {
     mWifiManager.setWifiEnabled(true);
   }
 
+  @NonNull
   private WifiConfiguration createWifiConfig(String ssid, String password, int type) {
     //初始化WifiConfiguration
     WifiConfiguration config = new WifiConfiguration();
@@ -115,6 +152,7 @@ public class WifiManagerUtils {
     return config;
   }
 
+  @NonNull
   private WifiConfiguration createWifiConfig(String ssid, String password, int type, int netId) {
     WifiConfiguration wifiConfiguration = createWifiConfig(ssid, password, type);
     wifiConfiguration.networkId = netId;
@@ -133,7 +171,7 @@ public class WifiManagerUtils {
     return null;
   }
 
-  private int getType(String ssid) {
+  private int getType(@NonNull String ssid) {
 
     List<ScanResult> mScanResultList = mWifiManager.getScanResults();
 
