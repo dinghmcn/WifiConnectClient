@@ -3,10 +3,22 @@ apply plugin: 'com.android.application'
 android {
     signingConfigs {
         release {
-            keyAlias 'WifiConnectClien'
-            keyPassword 'rZZQKbF4VLSy'
-            storeFile file('D:/WorkSpace/Android/AndroidStudioProjects/KeyStore.jks')
-            storePassword 'wJyt1jF3yIeL'
+            //加载资源
+            Properties properties = new Properties()
+            InputStream inputStream = project.rootProject.file('local.properties').newDataInputStream()
+            properties.load( inputStream )
+
+            //读取文件
+            def key_store_file = properties.getProperty('key.store.file')
+            //读取字段
+            def key_store_password = properties.getProperty( 'key.store.password' )
+            def key_wificonnectclien_alias = properties.getProperty( 'key.wificonnectclien.alias' )
+            def key_wificonnectclien_password = properties.getProperty( 'key.wificonnectclien.password' )
+
+            storeFile file( key_store_file  )
+            storePassword key_wificonnectclien_alias
+            keyAlias key_store_password
+            keyPassword key_wificonnectclien_password
         }
     }
     compileSdkVersion 27
