@@ -1,6 +1,5 @@
 package com.dinghmcn.android.wificonnectclient;
 
-import android.Manifest;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -8,8 +7,6 @@ import android.os.Handler;
 import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.v4.app.ActivityCompat;
-import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
@@ -18,28 +15,18 @@ import android.widget.Button;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
-import com.dinghmcn.android.wificonnectclient.utils.CheckPermissionUtils;
 import com.dinghmcn.android.wificonnectclient.utils.ConnectManagerUtils;
 import com.dinghmcn.android.wificonnectclient.utils.ConnectManagerUtils.EnumCommand;
 import com.dinghmcn.android.wificonnectclient.utils.SensorManagerUtils;
 import com.dinghmcn.android.wificonnectclient.utils.TimeUtils;
 import com.dinghmcn.android.wificonnectclient.utils.WifiManagerUtils;
-import com.uuzuche.lib_zxing.activity.CaptureActivity;
-import com.uuzuche.lib_zxing.activity.CodeUtils;
-import com.uuzuche.lib_zxing.activity.ZXingLibrary;
 
 import java.lang.ref.WeakReference;
 import java.net.InetSocketAddress;
-import java.util.Arrays;
-import java.util.List;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
-import pub.devrel.easypermissions.AfterPermissionGranted;
-import pub.devrel.easypermissions.AppSettingsDialog;
-import pub.devrel.easypermissions.EasyPermissions;
 
 /**
  * main.
@@ -47,25 +34,15 @@ import pub.devrel.easypermissions.EasyPermissions;
  * @author dinghmcn
  * @date 2018 /4/20 10:47
  */
-public class MainActivity extends AppCompatActivity implements EasyPermissions.PermissionCallbacks,
-    View.OnClickListener {
+public class MainActivity extends BaseActivity implements View.OnClickListener {
 
-  /**
-   * The constant REQUEST_SCANNER_CODE.
-   */
-  public static final int REQUEST_SCANNER_CODE = 8;
   /**
    * The constant REQUEST_CAMERA_CODE.
    */
   public static final int REQUEST_CAMERA_CODE = 9;
-  private static final String TAG = MainActivity.class.getSimpleName();
   private static final String COMPILE_DATE = "2018-05-18";
   private static final int EXPIRED_DAYS = 15;
   private static final int REQUEST_FUNCTION_FINGER = 102;
-  /**
-   * 请求CAMERA权限码.
-   */
-  private static final int REQUEST_CAMERA_PERM = 101;
   private static boolean isReleased = false;
   private static boolean isCatchKey = false;
   private static boolean isCatchTouch = false;
@@ -95,6 +72,10 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
    */
   @Override
   protected void onCreate(Bundle savedInstanceState) {
+    if (!isReleased && TimeUtils.isExpired(this, COMPILE_DATE, EXPIRED_DAYS)) {
+      outPutLog(R.string.software_expired);
+      return;
+    }
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_main);
 
@@ -111,14 +92,6 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
     if (!mWifiManagerUtils.isWifiEnabled()) {
       mWifiManagerUtils.openWifi();
     }
-
-    if (!isReleased && TimeUtils.isExpired(this, COMPILE_DATE, EXPIRED_DAYS)) {
-      outPutLog(R.string.software_expired);
-      return;
-    }
-
-    initPermission();
-    ZXingLibrary.initDisplayOpinion(this);
   }
 
   /**
@@ -132,47 +105,17 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
   protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
     super.onActivityResult(requestCode, resultCode, data);
     Log.d(TAG, "result:" + requestCode + "/" + resultCode);
-    switch (requestCode) {
-      case REQUEST_SCANNER_CODE:
-        if (resultCode == RESULT_OK) {
-          if (null != data) {
-            Bundle bundle = data.getExtras();
-            if (null == bundle) {
-              return;
-            }
-
-            if (bundle.getInt(CodeUtils.RESULT_TYPE) == CodeUtils.RESULT_SUCCESS) {
-              String result = bundle.getString(CodeUtils.RESULT_STRING);
-              if (result != null && !result.isEmpty()) {
-                prepareConnectServer(result);
-              } else {
-                outPutLog(R.string.get_ip_failed);
-              }
-            } else if (bundle.getInt(CodeUtils.RESULT_TYPE) == CodeUtils.RESULT_FAILED) {
-              outPutLog(R.string.get_ip_failed);
-            }
-
-          }
-        } else {
-          outPutLog(R.string.get_ip_failed);
+    if (requestCode == REQUEST_CAMERA_CODE) {
+      if (resultCode == RESULT_OK && null != data) {
+        Uri pictureUri = data.getData();
+        if (null != pictureUri && ConnectManagerUtils.mConnected) {
+          mConnectManager.sendFileToServer(pictureUri);
+          outPutLog(getString(R.string.send_file, pictureUri.toString()));
         }
-        break;
-      case REQUEST_CAMERA_CODE:
-        if (resultCode == RESULT_OK) {
-          if (null != data) {
-            Uri pictureUri = data.getData();
-            if (null != pictureUri && ConnectManagerUtils.mConnected) {
-              mConnectManager.sendFileToServer(pictureUri);
-              outPutLog(getString(R.string.send_file, pictureUri.toString()));
-            }
-
-          }
-        } else {
-          outPutLog(R.string.execute_command_error);
-          Log.e(TAG, "return result failed.");
-        }
-        break;
-      default:
+      } else {
+        outPutLog(R.string.execute_command_error);
+        Log.e(TAG, "return result failed.");
+      }
     }
   }
 
@@ -190,90 +133,6 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
   private void cleanLog() {
     mConnectMessage.setLength(0);
     mTextView.setText(mConnectMessage.toString());
-  }
-
-
-  /**
-   * EsayPermissions接管权限处理逻辑.
-   *
-   * @param requestCode  the request code
-   * @param permissions  the permissions
-   * @param grantResults the grant results
-   */
-  @Override
-  public void onRequestPermissionsResult(int requestCode, String[] permissions,
-      int[] grantResults) {
-    super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-
-    // Forward results to EasyPermissions
-    EasyPermissions.onRequestPermissionsResult(requestCode, permissions, grantResults, this);
-  }
-
-
-  /**
-   * Camera task.
-   */
-  @AfterPermissionGranted(REQUEST_CAMERA_PERM)
-  public void cameraTask() {
-    if (EasyPermissions.hasPermissions(this, Manifest.permission.CAMERA)) {
-      // Have permission, do the thing!
-      Intent intent = new Intent(MainActivity.this, CaptureActivity.class);
-      startActivityForResult(intent, REQUEST_SCANNER_CODE);
-    } else {
-      // Ask for one permission
-      EasyPermissions.requestPermissions(this, "需要请求camera权限", REQUEST_CAMERA_PERM,
-          Manifest.permission.CAMERA);
-    }
-  }
-
-  /**
-   * On permissions granted.
-   *
-   * @param requestCode the request code
-   * @param perms       the perms
-   */
-  @Override
-  public void onPermissionsGranted(int requestCode, List<String> perms) {
-    cameraTask();
-  }
-
-  /**
-   * On permissions denied.
-   *
-   * @param requestCode the request code
-   * @param perms       the perms
-   */
-  @Override
-  public void onPermissionsDenied(int requestCode, @NonNull List<String> perms) {
-    if (EasyPermissions.somePermissionPermanentlyDenied(this, perms)) {
-      new AppSettingsDialog.Builder(this, "当前App需要申请camera权限,需要打开设置页面么?").setTitle(
-          "权限申请")
-          .setPositiveButton("确认")
-          .setNegativeButton("取消",
-              null)
-          .setRequestCode(
-              REQUEST_CAMERA_PERM)
-          .build()
-          .show();
-    }
-  }
-
-  /**
-   * 初始化权限事件.
-   */
-  private void initPermission() {
-    Log.d(TAG, "check permissions");
-    //检查权限
-    String[] permissions = CheckPermissionUtils.checkPermission(this);
-    if (permissions.length == 0) {
-      //权限都申请了
-      cameraTask();
-      Log.d(TAG, "permission all");
-    } else {
-      Log.d(TAG, "request permissions : " + Arrays.toString(permissions));
-      //申请权限
-      ActivityCompat.requestPermissions(this, permissions, 100);
-    }
   }
 
   /**
@@ -359,6 +218,20 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
   public void onClick(@NonNull View v) {
     if (v.getId() == R.id.clean_message) {
       cleanLog();
+    }
+  }
+
+  /**
+   * Scanner result.
+   *
+   * @param result the result
+   */
+  @Override
+  protected void scannerResult(String result) {
+    if (null != result && !result.isEmpty()) {
+      prepareConnectServer(result);
+    } else {
+      outPutLog(R.string.get_ip_failed);
     }
   }
 
@@ -486,10 +359,10 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
                 ShowPictureFullActivity.class).putExtra("res_id", resId);
             mainActivity.startActivity(intent30);
             mainActivity.outPutLog(mainActivity.getString(R.string.show_file, imageName));
-            Log.d(TAG, mainActivity.getString(R.string.show_file, imageName));
+            Log.d(mainActivity.TAG, mainActivity.getString(R.string.show_file, imageName));
           } else {
             mainActivity.outPutLog(mainActivity.getString(R.string.file_not_exist, imageName));
-            Log.d(TAG, mainActivity.getString(R.string.file_not_exist, imageName));
+            Log.d(mainActivity.TAG, mainActivity.getString(R.string.file_not_exist, imageName));
           }
           break;
         case SENSOR:
