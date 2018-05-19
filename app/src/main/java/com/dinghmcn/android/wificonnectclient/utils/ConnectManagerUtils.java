@@ -6,9 +6,6 @@ import android.os.Message;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -21,6 +18,9 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 /**
  * The type Connect manager.
@@ -73,7 +73,8 @@ public class ConnectManagerUtils {
     mMainHandler = handler;
     mInetSocketAddress = inetSocketAddress;
 
-    mThreadPool = new ThreadPoolExecutor(5, 9, 5, TimeUnit.SECONDS, new LinkedBlockingDeque<Runnable>(), new ThreadFactory() {
+    mThreadPool = new ThreadPoolExecutor(5, 9, 5, TimeUnit.SECONDS,
+        new LinkedBlockingDeque<Runnable>(), new ThreadFactory() {
       @Override
       public Thread newThread(@NonNull Runnable r) {
         return new Thread(r, "ConnectManagerUtils");
@@ -88,7 +89,8 @@ public class ConnectManagerUtils {
    * @param inetSocketAddress the inet socket address
    * @return the connect manager
    */
-  public static ConnectManagerUtils newInstance(Handler handler, InetSocketAddress inetSocketAddress) {
+  public static ConnectManagerUtils newInstance(Handler handler,
+      InetSocketAddress inetSocketAddress) {
     if (null == instance) {
       instance = new ConnectManagerUtils(handler, inetSocketAddress);
     }
@@ -101,20 +103,24 @@ public class ConnectManagerUtils {
    * return true，合法.
    *
    * @param ipAddress ip address
-   * @return
+   * @return boolean boolean
    */
   public static boolean isIp(String ipAddress) {
     if (null != ipAddress && !ipAddress.isEmpty()) {
       // 定义正则表达式
-      String regex = new StringBuilder().append("^(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|[1-9])\\.").append("(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|\\d)\\.").append("(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|\\d)\\.").append("(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|\\d)$").toString();
+      String regex = new StringBuilder().append(
+          "^(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|[1-9])\\.")
+                                        .append(
+                                            "(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|\\d)\\.")
+                                        .append(
+                                            "(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|\\d)\\.")
+                                        .append(
+                                            "(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|\\d)$")
+                                        .toString();
       // 判断ip地址是否与正则表达式匹配
-      if (ipAddress.matches(regex)) {
-        // 返回判断信息
-        return true;
-      } else {
-        // 返回判断信息
-        return false;
-      }
+      // 返回判断信息
+      // 返回判断信息
+      return ipAddress.matches(regex);
     }
     return false;
   }
@@ -135,8 +141,13 @@ public class ConnectManagerUtils {
 
   /**
    * Connect server.
+   *
+   * @param wifiManagerUtils the wifi manager utils
+   * @param wifissid         the wifissid
+   * @param wifiPassWord     the wifi pass word
    */
-  public void connectServer(final WifiManagerUtils wifiManagerUtils, final String wifissid, final String wifiPassWord) {
+  public void connectServer(final WifiManagerUtils wifiManagerUtils, final String wifissid,
+      final String wifiPassWord) {
     Log.d(TAG, "Connect server.");
     mThreadPool.execute(new Runnable() {
       @Override
@@ -175,7 +186,10 @@ public class ConnectManagerUtils {
         while (System.currentTimeMillis() < start + delayedTime) {
           Process process = null;
           try {
-            process = Runtime.getRuntime().exec("/system/bin/ping -c 1 -w 100 " + mInetSocketAddress.getHostName());
+            process = Runtime.getRuntime()
+                             .exec(
+                                 "/system/bin/ping -c 1 -w 100 "
+                                     + mInetSocketAddress.getHostName());
           } catch (IOException e) {
             e.printStackTrace();
           }
@@ -221,7 +235,8 @@ public class ConnectManagerUtils {
       public void run() {
         sendMessage(EnumCommand.COMMAND.ordinal(), COMMAND_RECEIVE);
         int commandNullCount = 0;
-        while (mConnected && !mSocket.isClosed() && mSocket.isConnected() && !mSocket.isInputShutdown()) {
+        while (mConnected && !mSocket.isClosed() && mSocket.isConnected()
+            && !mSocket.isInputShutdown()) {
           Log.d(TAG, "Start receive message.");
           try {
             is = mSocket.getInputStream();
@@ -272,8 +287,10 @@ public class ConnectManagerUtils {
       @Override
       public void run() {
         try {
-          Log.d(TAG, "" + !mConnected + mSocket.isClosed() + !mSocket.isConnected() + mSocket.isOutputShutdown());
-          if (!mConnected || mSocket.isClosed() || !mSocket.isConnected() || mSocket.isOutputShutdown()) {
+          Log.d(TAG, "" + !mConnected + mSocket.isClosed() + !mSocket.isConnected()
+              + mSocket.isOutputShutdown());
+          if (!mConnected || mSocket.isClosed() || !mSocket.isConnected()
+              || mSocket.isOutputShutdown()) {
             sendMessage(EnumCommand.CONNECT.ordinal(), CONNECT_CLOSED);
             return;
           }
@@ -281,14 +298,14 @@ public class ConnectManagerUtils {
           File file = new File(fileUri.getPath());
           out = mSocket.getOutputStream();
 
-          out.write(file.getName().getBytes("UTF-8"));
+          out.write(file.getName()
+                        .getBytes("UTF-8"));
           out.flush();
 
           OutputStream outputData = mSocket.getOutputStream();
           FileInputStream fileInput = new FileInputStream(file);
-          int size = -1;
+          int size;
           byte[] buffer = new byte[1024];
-          //noinspection AlibabaUndefineMagicConstant
           final int maxSize = 1024;
           while ((size = fileInput.read(buffer, 0, maxSize)) != -1) {
             outputData.write(buffer, 0, size);
@@ -313,8 +330,10 @@ public class ConnectManagerUtils {
       @Override
       public void run() {
         try {
-          Log.d(TAG, "" + !mConnected + mSocket.isClosed() + !mSocket.isConnected() + mSocket.isOutputShutdown());
-          if (!mConnected || mSocket.isClosed() || !mSocket.isConnected() || mSocket.isOutputShutdown()) {
+          Log.d(TAG, "" + !mConnected + mSocket.isClosed() + !mSocket.isConnected()
+              + mSocket.isOutputShutdown());
+          if (!mConnected || mSocket.isClosed() || !mSocket.isConnected()
+              || mSocket.isOutputShutdown()) {
             sendMessage(EnumCommand.CONNECT.ordinal(), CONNECT_CLOSED);
             return;
           }
@@ -371,7 +390,8 @@ public class ConnectManagerUtils {
 
     String command = jsonObject.optString("Command", "");
     if (!command.isEmpty()) {
-      sendMessage(EnumCommand.valueOf(command.toUpperCase()).ordinal(), -1, jsonObject);
+      sendMessage(EnumCommand.valueOf(command.toUpperCase())
+                             .ordinal(), -1, jsonObject);
     } else {
       sendMessage(EnumCommand.COMMAND.ordinal(), COMMAND_ERROR);
     }
@@ -425,10 +445,29 @@ public class ConnectManagerUtils {
     this.mInetSocketAddress = mInetSocketAddress;
   }
 
+  /**
+   * The enum Enum command.
+   */
   public enum EnumCommand {
     /**
-     * mMainHandel what.
+     * Connect enum command.
      */
-    CONNECT, COMMAND, SENSOR, CAMERA, SHOW_PICTURE, FUNCTION
+    CONNECT,
+    /**
+     * Command enum command.
+     */
+    COMMAND,
+    /**
+     * Sensor enum command.
+     */
+    SENSOR,
+    /**
+     * Function enum command.
+     */
+    FUNCTION,
+    /**
+     * Show picture enum command.
+     */
+    SHOW_PICTURE
   }
 }

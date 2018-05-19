@@ -26,14 +26,14 @@ import com.uuzuche.lib_zxing.activity.CaptureActivity;
 import com.uuzuche.lib_zxing.activity.CodeUtils;
 import com.uuzuche.lib_zxing.activity.ZXingLibrary;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.lang.ref.WeakReference;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.List;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import pub.devrel.easypermissions.AfterPermissionGranted;
 import pub.devrel.easypermissions.AppSettingsDialog;
@@ -59,21 +59,17 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
   private static final String TAG = MainActivity.class.getSimpleName();
   private static final String COMPILE_DATE = "2018-05-18";
   private static final int EXPIRED_DAYS = 15;
-  private static boolean isReleased = false;
-
-  private static boolean isCatchKey = false;
-  private static boolean isCatchTouch = false;
-
-  private static JSONObject mKeyJsonObject;
-  private static JSONObject mTouchJsonObject;
-  private static JSONArray mTouchJsonArray;
-
   private static final int REQUEST_FUNCTION_FINGER = 102;
   /**
    * 请求CAMERA权限码.
    */
   private static final int REQUEST_CAMERA_PERM = 101;
-
+  private static boolean isReleased = false;
+  private static boolean isCatchKey = false;
+  private static boolean isCatchTouch = false;
+  private static JSONObject mKeyJsonObject;
+  private static JSONObject mTouchJsonObject;
+  private static JSONArray mTouchJsonArray;
   private ScrollView mScrollView;
   private TextView mTextView;
   private Button mButton;
@@ -174,7 +170,8 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
   }
 
   private void outPutLog(String message) {
-    mConnectMessage.append(message).append("\r\n");
+    mConnectMessage.append(message)
+                   .append("\r\n");
     mTextView.setText(mConnectMessage);
     mScrollView.fullScroll(ScrollView.FOCUS_DOWN);
   }
@@ -198,7 +195,7 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
    */
   @Override
   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                                         int[] grantResults) {
+      int[] grantResults) {
     super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
     // Forward results to EasyPermissions
@@ -217,8 +214,8 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
       startActivityForResult(intent, REQUEST_SCANNER_CODE);
     } else {
       // Ask for one permission
-      EasyPermissions.requestPermissions(this, "需要请求camera权限",
-          REQUEST_CAMERA_PERM, Manifest.permission.CAMERA);
+      EasyPermissions.requestPermissions(this, "需要请求camera权限", REQUEST_CAMERA_PERM,
+          Manifest.permission.CAMERA);
     }
   }
 
@@ -242,11 +239,15 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
   @Override
   public void onPermissionsDenied(int requestCode, List<String> perms) {
     if (EasyPermissions.somePermissionPermanentlyDenied(this, perms)) {
-      new AppSettingsDialog.Builder(this,
-          "当前App需要申请camera权限,需要打开设置页面么?")
-          .setTitle("权限申请").setPositiveButton("确认")
-          .setNegativeButton("取消", null)
-          .setRequestCode(REQUEST_CAMERA_PERM).build().show();
+      new AppSettingsDialog.Builder(this, "当前App需要申请camera权限,需要打开设置页面么?").setTitle(
+          "权限申请")
+                                                                         .setPositiveButton("确认")
+                                                                         .setNegativeButton("取消",
+                                                                             null)
+                                                                         .setRequestCode(
+                                                                             REQUEST_CAMERA_PERM)
+                                                                         .build()
+                                                                         .show();
     }
   }
 
@@ -292,16 +293,22 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
     return super.onKeyDown(keyCode, event);
   }
 
+  /**
+   * Dispatch touch event boolean.
+   *
+   * @param ev the ev
+   * @return the boolean
+   */
   @Override
   public boolean dispatchTouchEvent(MotionEvent ev) {
-    Log.d(TAG,"onTouchEvent");
+    Log.d(TAG, "onTouchEvent");
     if (isCatchTouch) {
       if (mTouchJsonArray == null) {
         mTouchJsonArray = new JSONArray();
       }
       switch (ev.getAction()) {
         case MotionEvent.ACTION_DOWN:
-          Log.d(TAG,"down");
+          Log.d(TAG, "down");
           mTouchJsonObject = new JSONObject();
           try {
             mTouchJsonObject.put("DOWN", "(" + ev.getRawX() + "," + ev.getRawY() + ")");
@@ -310,15 +317,16 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
           }
           break;
         case MotionEvent.ACTION_MOVE:
-          Log.d(TAG,"move");
+          Log.d(TAG, "move");
           try {
-            mTouchJsonObject.put("MOVE" + (mTouchJsonObject.length() - 1), "(" + ev.getRawX() + "," + ev.getRawY() + ")");
+            mTouchJsonObject.put("MOVE" + (mTouchJsonObject.length() - 1),
+                "(" + ev.getRawX() + "," + ev.getRawY() + ")");
           } catch (JSONException e) {
             e.printStackTrace();
           }
           break;
         case MotionEvent.ACTION_UP:
-          Log.d(TAG,"up");
+          Log.d(TAG, "up");
           try {
             mTouchJsonObject.put("UP", "(" + ev.getRawX() + "," + ev.getRawY() + ")");
           } catch (JSONException e) {
@@ -328,6 +336,7 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
           Log.d(TAG, mTouchJsonObject.toString() + " | " + mTouchJsonArray.toString());
           mTouchJsonObject = null;
           break;
+        default:
       }
       return true;
     }
@@ -454,19 +463,20 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
           break;
 
         case CAMERA:
-          final Intent intent20 = new Intent(mainActivity, CameraActivity.class)
-              .putExtra("camera_parameter", msg.obj.toString());
+          final Intent intent20 = new Intent(mainActivity, CameraActivity.class).putExtra(
+              "camera_parameter", msg.obj.toString());
           mainActivity.startActivityForResult(intent20, REQUEST_CAMERA_CODE);
           break;
         case SHOW_PICTURE:
           String imageName;
           final JSONObject sJsonObject = (JSONObject) msg.obj;
           imageName = sJsonObject.optString("FileName", "");
-          int resId = mainActivity.getResources().getIdentifier(imageName, "drawable",
-              mainActivity.getPackageName());
+          int resId = mainActivity.getResources()
+                                  .getIdentifier(imageName, "drawable",
+                                      mainActivity.getPackageName());
           if (resId > 0) {
-            final Intent intent30 = new Intent(mainActivity, ShowPictureFullActivity.class)
-                .putExtra("res_id", resId);
+            final Intent intent30 = new Intent(mainActivity,
+                ShowPictureFullActivity.class).putExtra("res_id", resId);
             mainActivity.startActivity(intent30);
             mainActivity.outPutLog(mainActivity.getString(R.string.show_file, imageName));
             Log.d(TAG, mainActivity.getString(R.string.show_file, imageName));
@@ -476,13 +486,14 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
           }
           break;
         case SENSOR:
-          final SensorManagerUtils sensorManagerUtils =
-              SensorManagerUtils.getInstance(mainActivity);
+          final SensorManagerUtils sensorManagerUtils = SensorManagerUtils.getInstance(
+              mainActivity);
           postDelayed(new Runnable() {
             @Override
             public void run() {
               mainActivity.mConnectManager.sendMessageToServer(
-                  sensorManagerUtils.getJSONObject().toString());
+                  sensorManagerUtils.getJSONObject()
+                                    .toString());
             }
           }, 1000);
           break;
@@ -505,7 +516,7 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
               }, time);
               break;
             case "Touch":
-              isCatchTouch =true;
+              isCatchTouch = true;
               postDelayed(new Runnable() {
                 @Override
                 public void run() {
@@ -519,6 +530,7 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
               break;
             case "Finger":
               break;
+            default:
           }
           break;
         default:

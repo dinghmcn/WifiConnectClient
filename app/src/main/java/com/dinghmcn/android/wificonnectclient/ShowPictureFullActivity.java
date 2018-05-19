@@ -7,22 +7,29 @@ import android.view.WindowManager;
 import android.widget.ImageView;
 
 /**
+ * The type Show picture full activity.
+ *
  * @author dinghmcn
- * @date 2018/4/20 10:47
- **/
-
+ * @date 2018 /4/20 10:47
+ */
 public class ShowPictureFullActivity extends AppCompatActivity {
   private static final String TAG = "ShowPictureFullActivity";
 
   private ImageView mImageView;
 
+  /**
+   * On create.
+   *
+   * @param savedInstanceState the saved instance state
+   */
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
 
     Window window = getWindow();
     requestWindowFeature(Window.FEATURE_NO_TITLE);
-    window.setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+    window.setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+        WindowManager.LayoutParams.FLAG_FULLSCREEN);
     requestWindowFeature(Window.FEATURE_NO_TITLE);
 
     setContentView(R.layout.activity_full_show_picture);
@@ -30,6 +37,9 @@ public class ShowPictureFullActivity extends AppCompatActivity {
     mImageView = findViewById(R.id.imageView);
   }
 
+  /**
+   * On resume.
+   */
   @Override
   protected void onResume() {
     super.onResume();
@@ -42,12 +52,18 @@ public class ShowPictureFullActivity extends AppCompatActivity {
     }
   }
 
+  /**
+   * On pause.
+   */
   @Override
   protected void onPause() {
     super.onPause();
     finish();
   }
 
+  /**
+   * On back pressed.
+   */
   @Override
   public void onBackPressed() {
     super.onBackPressed();

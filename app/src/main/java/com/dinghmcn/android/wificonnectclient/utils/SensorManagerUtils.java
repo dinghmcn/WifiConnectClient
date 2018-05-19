@@ -6,16 +6,18 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.util.Arrays;
 import java.util.List;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 /**
+ * The type Sensor manager utils.
+ *
  * @author dinghmcn
- * @date 2018/4/28 15:35
- **/
+ * @date 2018 /4/28 15:35
+ */
 public class SensorManagerUtils implements SensorEventListener {
   private static final String TAG = "SensorManagerUtils";
 
@@ -30,6 +32,12 @@ public class SensorManagerUtils implements SensorEventListener {
     registerListeners();
   }
 
+  /**
+   * Gets instance.
+   *
+   * @param context the context
+   * @return the instance
+   */
   public static SensorManagerUtils getInstance(Context context) {
     if (null == instance) {
       instance = new SensorManagerUtils(context);
@@ -37,6 +45,11 @@ public class SensorManagerUtils implements SensorEventListener {
     return instance;
   }
 
+  /**
+   * On sensor changed.
+   *
+   * @param event the event
+   */
   @Override
   public void onSensorChanged(SensorEvent event) {
     try {
@@ -46,6 +59,12 @@ public class SensorManagerUtils implements SensorEventListener {
     }
   }
 
+  /**
+   * On accuracy changed.
+   *
+   * @param sensor   the sensor
+   * @param accuracy the accuracy
+   */
   @Override
   public void onAccuracyChanged(Sensor sensor, int accuracy) {
 
@@ -53,10 +72,16 @@ public class SensorManagerUtils implements SensorEventListener {
 
   private void registerListeners() {
     for (int sensor : mSensorList) {
-      mSensorManager.registerListener(this, mSensorManager.getDefaultSensor(sensor), SensorManager.SENSOR_DELAY_UI);
+      mSensorManager.registerListener(this, mSensorManager.getDefaultSensor(sensor),
+          SensorManager.SENSOR_DELAY_UI);
     }
   }
 
+  /**
+   * Gets json object.
+   *
+   * @return the json object
+   */
   public JSONObject getJSONObject() {
     return mJSONObject;
   }

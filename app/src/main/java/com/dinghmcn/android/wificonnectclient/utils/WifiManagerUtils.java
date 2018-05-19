@@ -12,9 +12,11 @@ import android.util.Log;
 import java.util.List;
 
 /**
+ * The type Wifi manager utils.
+ *
  * @author dinghmcn
- * @date 2018/4/25 16:09
- **/
+ * @date 2018 /4/25 16:09
+ */
 public class WifiManagerUtils {
   private static final String TAG = "WifiManagerUtils";
 
@@ -32,6 +34,12 @@ public class WifiManagerUtils {
     mWifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
   }
 
+  /**
+   * Gets instance.
+   *
+   * @param context the context
+   * @return the instance
+   */
   public static WifiManagerUtils getInstance(Context context) {
     if (instance == null) {
       instance = new WifiManagerUtils(context);
@@ -39,6 +47,13 @@ public class WifiManagerUtils {
     return instance;
   }
 
+  /**
+   * Connect wifi boolean.
+   *
+   * @param ssid     the ssid
+   * @param password the password
+   * @return the boolean
+   */
   public boolean connectWifi(String ssid, String password) {
     Log.d(TAG, "SSID:" + ssid + " password:" + password);
 
@@ -46,7 +61,8 @@ public class WifiManagerUtils {
     WifiConfiguration tempConfig = isExist(ssid);
     if (tempConfig != null) {
       //则清除旧有配置
-      int netId = mWifiManager.updateNetwork(createWifiConfig(ssid, password, getType(ssid), tempConfig.networkId));
+      int netId = mWifiManager.updateNetwork(
+          createWifiConfig(ssid, password, getType(ssid), tempConfig.networkId));
       Log.d(TAG, "netId1:" + netId);
       return mWifiManager.enableNetwork(netId, true);
     } else {
@@ -56,15 +72,28 @@ public class WifiManagerUtils {
     }
   }
 
+  /**
+   * Is wifi enabled boolean.
+   *
+   * @return the boolean
+   */
   public boolean isWifiEnabled() {
     Log.d(TAG, "isWifiEnabled():" + mWifiManager.isWifiEnabled());
     return mWifiManager.isWifiEnabled();
   }
 
+  /**
+   * Is wifi connected boolean.
+   *
+   * @param ssid the ssid
+   * @return the boolean
+   */
   public boolean isWifiConnected(String ssid) {
-    ConnectivityManager connectivityManager = (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+    ConnectivityManager connectivityManager = (ConnectivityManager) mContext.getSystemService(
+        Context.CONNECTIVITY_SERVICE);
     NetworkInfo activeNetInfo = connectivityManager.getActiveNetworkInfo();
-    if (activeNetInfo != null && activeNetInfo.getType() == ConnectivityManager.TYPE_WIFI && activeNetInfo.isConnected()) {
+    if (activeNetInfo != null && activeNetInfo.getType() == ConnectivityManager.TYPE_WIFI
+        && activeNetInfo.isConnected()) {
       Log.d(TAG, activeNetInfo.toString());
       Log.d(TAG, "isWifiConnected():" + ('"' + ssid + '"').equals(activeNetInfo.getExtraInfo()));
       return ('"' + ssid + '"').equals(activeNetInfo.getExtraInfo());
@@ -73,6 +102,9 @@ public class WifiManagerUtils {
     return false;
   }
 
+  /**
+   * Open wifi.
+   */
   public void openWifi() {
     mWifiManager.setWifiEnabled(true);
   }

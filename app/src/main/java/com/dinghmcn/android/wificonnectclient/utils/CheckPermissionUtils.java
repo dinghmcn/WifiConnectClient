@@ -9,15 +9,24 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
+ * The type Check permission utils.
+ *
  * @author dinghmcn
- * @date 2018/4/20 11:31
- **/
+ * @date 2018 /4/20 11:31
+ */
 public class CheckPermissionUtils {
-  private static String[] permissions = new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.CAMERA};
+  private static String[] permissions = new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE,
+      Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.CAMERA};
 
   private CheckPermissionUtils() {
   }
 
+  /**
+   * Check permission string [ ].
+   *
+   * @param context the context
+   * @return the string [ ]
+   */
   public static String[] checkPermission(Context context) {
     List<String> data = new ArrayList<>();
     for (String permission : permissions) {

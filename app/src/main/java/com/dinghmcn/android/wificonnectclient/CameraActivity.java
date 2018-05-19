@@ -18,14 +18,14 @@ import android.view.WindowManager;
 import com.google.android.cameraview.AspectRatio;
 import com.google.android.cameraview.CameraView;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 /**
  * The type Camera activity.
@@ -33,7 +33,8 @@ import java.io.IOException;
  * @author dinghmcn
  * @date 2018 /4/20 10:47
  */
-public class CameraActivity extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback {
+public class CameraActivity extends AppCompatActivity implements
+    ActivityCompat.OnRequestPermissionsResultCallback {
   private static final String TAG = "CameraActivity";
 
   private CameraView mCameraView;
@@ -70,6 +71,11 @@ public class CameraActivity extends AppCompatActivity implements ActivityCompat.
   };
 
 
+  /**
+   * On create.
+   *
+   * @param savedInstanceState the saved instance state
+   */
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
@@ -77,7 +83,8 @@ public class CameraActivity extends AppCompatActivity implements ActivityCompat.
 
     Window window = getWindow();
     requestWindowFeature(Window.FEATURE_NO_TITLE);
-    window.setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+    window.setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+        WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
     setContentView(R.layout.activity_camera);
 
@@ -115,7 +122,8 @@ public class CameraActivity extends AppCompatActivity implements ActivityCompat.
     mCameraView.setFlash(flash);
 
     mCompressionRatio = jsonObject.optInt("CompressionRatio", 1);
-    Log.d(TAG, "ratio:" + mCameraView.getAspectRatio().toString());
+    Log.d(TAG, "ratio:" + mCameraView.getAspectRatio()
+                                     .toString());
 
     getBackgroundHandler().postDelayed(new Runnable() {
       @Override
@@ -125,6 +133,9 @@ public class CameraActivity extends AppCompatActivity implements ActivityCompat.
     }, 1000);
   }
 
+  /**
+   * On pause.
+   */
   @Override
   protected void onPause() {
     mCameraView.stop();
@@ -133,14 +144,19 @@ public class CameraActivity extends AppCompatActivity implements ActivityCompat.
     finish();
   }
 
+  /**
+   * On destroy.
+   */
   @Override
   protected void onDestroy() {
     super.onDestroy();
     if (mBackgroundHandler != null) {
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-        mBackgroundHandler.getLooper().quitSafely();
+        mBackgroundHandler.getLooper()
+                          .quitSafely();
       } else {
-        mBackgroundHandler.getLooper().quit();
+        mBackgroundHandler.getLooper()
+                          .quit();
       }
       mBackgroundHandler = null;
     }
@@ -164,6 +180,9 @@ public class CameraActivity extends AppCompatActivity implements ActivityCompat.
     return mBackgroundHandler;
   }
 
+  /**
+   * On back pressed.
+   */
   @Override
   public void onBackPressed() {
     super.onBackPressed();
@@ -180,8 +199,10 @@ public class CameraActivity extends AppCompatActivity implements ActivityCompat.
       mPictureHeight = Integer.parseInt(s.substring(position + 1));
       float ratio = 1F * mPictureWidth / mPictureHeight;
       mCameraView.setAspectRatio(AspectRatio.of(mPictureWidth, mPictureHeight));
-      Log.d(TAG, "ratio:" + ratio + "|" + mCameraView.getAspectRatio().toString());
-      Log.d(TAG, "ratios:" + mCameraView.getSupportedAspectRatios().size());
+      Log.d(TAG, "ratio:" + ratio + "|" + mCameraView.getAspectRatio()
+                                                     .toString());
+      Log.d(TAG, "ratios:" + mCameraView.getSupportedAspectRatios()
+                                        .size());
     } catch (NumberFormatException e) {
       throw new IllegalArgumentException("Malformed aspect ratio: " + s, e);
     }
@@ -195,7 +216,7 @@ public class CameraActivity extends AppCompatActivity implements ActivityCompat.
    */
   private void compressBySize(byte[] data, int compressionRatio) {
 
-    Bitmap bitmap = BitmapFactory.decodeByteArray (data, 0, data.length);
+    Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
     bitmap = zoomImage(bitmap, mPictureHeight, mPictureWidth);
 
     if (compressionRatio > 1) {
@@ -246,8 +267,8 @@ public class CameraActivity extends AppCompatActivity implements ActivityCompat.
 
     float scale = scaleWidth > scaleHeight ? scaleHeight : scaleWidth;
     Log.d(TAG, oldWidth + ":" + oldHeight);
-    Log.d(TAG, newWidth+ ":" + newHeight);
-    Log.d(TAG, scale + ":"  + scaleWidth + ":" + scaleHeight);
+    Log.d(TAG, newWidth + ":" + newHeight);
+    Log.d(TAG, scale + ":" + scaleWidth + ":" + scaleHeight);
 
     Matrix matrix = new Matrix();
     matrix.postScale(scale, scale);
