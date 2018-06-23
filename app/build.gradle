@@ -6,16 +6,16 @@ android {
             //加载资源
             Properties properties = new Properties()
             InputStream inputStream = project.rootProject.file('local.properties').newDataInputStream()
-            properties.load( inputStream )
+            properties.load(inputStream)
 
             //读取文件
             def key_store_file = properties.getProperty('key.store.file')
             //读取字段
-            def key_store_password = properties.getProperty( 'key.store.password' )
-            def key_wificonnectclien_alias = properties.getProperty( 'key.wificonnectclien.alias' )
-            def key_wificonnectclien_password = properties.getProperty( 'key.wificonnectclien.password' )
+            def key_store_password = properties.getProperty('key.store.password')
+            def key_wificonnectclien_alias = properties.getProperty('key.wificonnectclien.alias')
+            def key_wificonnectclien_password = properties.getProperty('key.wificonnectclien.password')
 
-            storeFile file( key_store_file  )
+            storeFile file(key_store_file)
             storePassword key_wificonnectclien_alias
             keyAlias key_store_password
             keyPassword key_wificonnectclien_password
@@ -26,8 +26,8 @@ android {
         applicationId "com.dinghmcn.android.wificonnectclient"
         minSdkVersion 23
         targetSdkVersion 27
-        versionCode 20180518
-        versionName "0.20180518"
+        versionCode 20180623
+        versionName '0.20180623'
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
@@ -41,6 +41,8 @@ android {
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
+    }
+    productFlavors {
     }
 }
 

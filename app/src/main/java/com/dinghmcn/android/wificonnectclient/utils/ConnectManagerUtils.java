@@ -12,8 +12,11 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.math.BigInteger;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -133,6 +136,70 @@ public class ConnectManagerUtils {
     return str.matches(regex);
   }
 
+  private static String getFileMd5(File file) {
+    try {
+      FileInputStream fileInputStream = new FileInputStream(file);
+      byte[] buffer = new byte[8192];
+      MessageDigest messageDigest = MessageDigest.getInstance("MD5");
+      int length;
+      while ((length = fileInputStream.read(buffer)) != -1) {
+        messageDigest.update(buffer, 0, length);
+      }
+      return new BigInteger(1, messageDigest.digest()).toString(16);
+    } catch (NoSuchAlgorithmException | IOException e) {
+      e.printStackTrace();
+    }
+    return "";
+  }
+
+  /**
+   * Receive message from server.
+   */
+  private void receiveMessageFromServer() {
+    Log.d(TAG, "Receive message.");
+    mThreadPool.execute(() -> {
+      sendMessage(EnumCommand.COMMAND.ordinal(), COMMAND_RECEIVE);
+      int commandNullCount = 0;
+      while (mConnected && !mSocket.isClosed() && mSocket.isConnected()
+          && !mSocket.isInputShutdown()) {
+        Log.d(TAG, "Start receive message.");
+        try {
+          is = mSocket.getInputStream();
+          String command;
+          byte[] tempBuffer = new byte[2048];
+          int numReadedBytes = is.read(tempBuffer, 0, tempBuffer.length);
+          if (numReadedBytes > 0) {
+            command = new String(tempBuffer, 0, numReadedBytes);
+          } else {
+            ++commandNullCount;
+            Log.d(TAG, "Command is null:" + commandNullCount);
+            if (commandNullCount > 3) {
+              sendMessage(EnumCommand.CONNECT.ordinal(), CONNECT_CLOSED);
+              return;
+            } else {
+              continue;
+            }
+          }
+          Log.d(TAG, "Command:" + command);
+
+          if (!command.isEmpty()) {
+            parsingCommand(command);
+            sendMessage(EnumCommand.COMMAND.ordinal(), COMMAND_SEND, command);
+          } else {
+            sendMessage(EnumCommand.COMMAND.ordinal(), COMMAND_ERROR);
+          }
+        } catch (IOException e) {
+          Log.d(TAG, "Receive message error.");
+          e.printStackTrace();
+        }
+      }
+      if (null != mMainHandler) {
+        sendMessage(EnumCommand.CONNECT.ordinal(), CONNECT_CLOSED);
+      }
+
+    });
+  }
+
   /**
    * Connect server.
    *
@@ -144,6 +211,7 @@ public class ConnectManagerUtils {
       @NonNull final String wifissid,
       final String wifiPassWord) {
     Log.d(TAG, "Connect server.");
+    assert mThreadPool != null;
     mThreadPool.execute(() -> {
       long delayedTime = 8000L;
       long start = System.currentTimeMillis();
@@ -205,7 +273,7 @@ public class ConnectManagerUtils {
       } catch (IOException e) {
         e.printStackTrace();
       }
-      Log.d(TAG, "Connected :" + mSocket.isConnected());
+      Log.d(TAG, mInetSocketAddress + "Connected :" + mSocket.isConnected());
       if (mSocket.isConnected()) {
         mConnected = true;
         receiveMessageFromServer();
@@ -218,60 +286,13 @@ public class ConnectManagerUtils {
   }
 
   /**
-   * Receive message from server.
-   */
-  private void receiveMessageFromServer() {
-    Log.d(TAG, "Receive message.");
-    mThreadPool.execute(() -> {
-      sendMessage(EnumCommand.COMMAND.ordinal(), COMMAND_RECEIVE);
-      int commandNullCount = 0;
-      while (mConnected && !mSocket.isClosed() && mSocket.isConnected()
-          && !mSocket.isInputShutdown()) {
-        Log.d(TAG, "Start receive message.");
-        try {
-          is = mSocket.getInputStream();
-          String command;
-          byte[] tempBuffer = new byte[2048];
-          int numReadedBytes = is.read(tempBuffer, 0, tempBuffer.length);
-          if (numReadedBytes > 0) {
-            command = new String(tempBuffer, 0, numReadedBytes);
-          } else {
-            ++commandNullCount;
-            Log.d(TAG, "Command is null:" + commandNullCount);
-            if (commandNullCount > 3) {
-              sendMessage(EnumCommand.CONNECT.ordinal(), CONNECT_CLOSED);
-              return;
-            } else {
-              continue;
-            }
-          }
-          Log.d(TAG, "Command:" + command);
-
-          if (!command.isEmpty()) {
-            parsingCommand(command);
-            sendMessage(EnumCommand.COMMAND.ordinal(), COMMAND_SEND, command);
-          } else {
-            sendMessage(EnumCommand.COMMAND.ordinal(), COMMAND_ERROR);
-          }
-        } catch (IOException e) {
-          Log.d(TAG, "Receive message error.");
-          e.printStackTrace();
-        }
-      }
-      if (null != mMainHandler) {
-        sendMessage(EnumCommand.CONNECT.ordinal(), CONNECT_CLOSED);
-      }
-
-    });
-  }
-
-  /**
    * Send file to server.
    *
    * @param fileUri the file uri
    */
   public void sendFileToServer(@NonNull final Uri fileUri) {
     Log.d(TAG, "Send File :" + fileUri);
+    assert mThreadPool != null;
     mThreadPool.execute(() -> {
       try {
         Log.d(TAG, "" + !mConnected + mSocket.isClosed() + !mSocket.isConnected()
@@ -285,46 +306,26 @@ public class ConnectManagerUtils {
         File file = new File(fileUri.getPath());
         out = mSocket.getOutputStream();
 
-        out.write(file.getName()
-            .getBytes("UTF-8"));
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("FileName", file.getName());
+        jsonObject.put("FileSize", file.length());
+        jsonObject.put("FileMd5", getFileMd5(file));
+
+        sendMessage(EnumCommand.COMMAND.ordinal(), COMMAND_SEND, jsonObject.toString());
+        Log.d(TAG, jsonObject.toString());
+
+        out.write(jsonObject.toString().getBytes("UTF-8"));
         out.flush();
 
-        OutputStream outputData = mSocket.getOutputStream();
-        FileInputStream fileInput = new FileInputStream(file);
+        FileInputStream fileInputStream = new FileInputStream(file);
         int size;
-        byte[] buffer = new byte[1024];
-        final int maxSize = 1024;
-        while ((size = fileInput.read(buffer, 0, maxSize)) != -1) {
-          outputData.write(buffer, 0, size);
+        byte[] buffer = new byte[8192];
+        while ((size = fileInputStream.read(buffer)) != -1) {
+          out.write(buffer, 0, size);
         }
         out.flush();
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-    });
-  }
-
-  /**
-   * Send message to server.
-   *
-   * @param message the message
-   */
-  public void sendMessageToServer(final String message) {
-    Log.d(TAG, "Send message :" + message);
-    sendMessage(EnumCommand.COMMAND.ordinal(), COMMAND_SEND, message);
-    mThreadPool.execute(() -> {
-      try {
-        Log.d(TAG, "" + !mConnected + mSocket.isClosed() + !mSocket.isConnected()
-            + mSocket.isOutputShutdown());
-        if (!mConnected || mSocket.isClosed() || !mSocket.isConnected()
-            || mSocket.isOutputShutdown()) {
-          sendMessage(EnumCommand.CONNECT.ordinal(), CONNECT_CLOSED);
-          return;
-        }
-        out = mSocket.getOutputStream();
-        out.write((message + "/r/n").getBytes("UTF-8"));
-        out.flush();
-      } catch (IOException e) {
+        fileInputStream.close();
+      } catch (JSONException | IOException e) {
         e.printStackTrace();
       }
     });
@@ -362,6 +363,37 @@ public class ConnectManagerUtils {
     }
   }
 
+  /**
+   * Send message to server.
+   *
+   * @param message the message
+   */
+  public void sendMessageToServer(final String message) {
+    Log.d(TAG, "Send message :" + message);
+    sendMessage(EnumCommand.COMMAND.ordinal(), COMMAND_SEND, message);
+    assert mThreadPool != null;
+    mThreadPool.execute(() -> {
+      try {
+        Log.d(TAG, "" + !mConnected + mSocket.isClosed() + !mSocket.isConnected()
+            + mSocket.isOutputShutdown());
+        if (!mConnected || mSocket.isClosed() || !mSocket.isConnected()
+            || mSocket.isOutputShutdown()) {
+          sendMessage(EnumCommand.CONNECT.ordinal(), CONNECT_CLOSED);
+          return;
+        }
+        out = mSocket.getOutputStream();
+        out.write(message.getBytes("UTF-8"));
+        out.flush();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    });
+  }
+
+  private void sendMessage(int what, int arg1) {
+    sendMessage(what, arg1, null);
+  }
+
   private void parsingCommand(String commands) {
     Log.d(TAG, commands);
     JSONObject jsonObject = null;
@@ -375,24 +407,12 @@ public class ConnectManagerUtils {
     if (jsonObject != null) {
       command = jsonObject.optString("Command", "Error");
     }
-    if (!command.isEmpty()) {
+    if (null != command && !command.isEmpty()) {
       sendMessage(EnumCommand.valueOf(command.toUpperCase())
           .ordinal(), -1, jsonObject);
     } else {
       sendMessage(EnumCommand.COMMAND.ordinal(), COMMAND_ERROR);
     }
-  }
-
-  private void sendMessage(int what, int arg1) {
-    sendMessage(what, arg1, null);
-  }
-
-  private void sendMessage(int what, int arg1, Object obj) {
-    Message message = Message.obtain();
-    message.what = what;
-    message.arg1 = arg1;
-    message.obj = obj;
-    mMainHandler.sendMessage(message);
   }
 
   /**
@@ -460,5 +480,14 @@ public class ConnectManagerUtils {
      * Show picture enum command.
      */
     SHOW_PICTURE
+  }
+
+  private void sendMessage(int what, int arg1, Object obj) {
+    Message message = Message.obtain();
+    message.what = what;
+    message.arg1 = arg1;
+    message.obj = obj;
+    assert mMainHandler != null;
+    mMainHandler.sendMessage(message);
   }
 }

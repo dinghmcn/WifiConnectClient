@@ -35,26 +35,36 @@ public class TimeUtils {
    * @param day     the day
    * @return the boolean
    */
-  public static boolean isExpired(@NonNull Context context, String date, int day) {
-    long firstBootTime = getFirstBootTime(context);
-    long expiredToFirstBootTime = getFirstBootTime(context) + day * 24 * 60 * 60 * 1000L;
+  public static boolean isNotExpired(@NonNull Context context, String date, int day) {
+    if (day <= 0) {
+      return false;
+    }
+    long firstBootTime = getBootTime(context, "first");
+    long lastBootTime = getBootTime(context, "last");
     long localTime = getLocalTime();
     long compileTime = getTimeForString(date);
     long expiredToCompileTime = compileTime + day * 24 * 60 * 60 * 1000L;
+
+    if (firstBootTime < 0) {
+      firstBootTime = lastBootTime = localTime;
+      saveBootTime(context, "first", localTime);
+    }
+    long expiredToFirstBootTime = firstBootTime + day * 24 * 60 * 60 * 1000L;
+
     Log.d(TAG, "date:" + date + " day:" + day + " localTime:" + localTime + " firstBootTime:"
         + firstBootTime + " expiredToFirstBootTime:" + expiredToFirstBootTime + " compileTime:"
         + compileTime + " expiredToCompileTime:" + expiredToCompileTime);
-    saveFirstBootTime(context);
 
-    boolean isexpiredToFirstBootTime =
-        localTime > firstBootTime && localTime < expiredToFirstBootTime;
-    boolean isexpiredToCompileTime = localTime > compileTime && localTime < expiredToCompileTime;
-
-    if ((firstBootTime < compileTime) && isexpiredToFirstBootTime) {
-      return false;
+    if (lastBootTime <= localTime) {
+      saveBootTime(context, "last", localTime);
     } else {
-      return firstBootTime <= compileTime || !isexpiredToCompileTime;
+      return false;
     }
+
+    return (firstBootTime < compileTime && firstBootTime <= localTime
+        && localTime <= expiredToFirstBootTime)
+        || (firstBootTime >= compileTime && compileTime <= localTime
+        && localTime <= expiredToCompileTime);
 
   }
 
@@ -64,7 +74,7 @@ public class TimeUtils {
    *
    * @return the local time
    */
-  public static long getLocalTime() {
+  private static long getLocalTime() {
     return Calendar.getInstance()
         .getTimeInMillis();
   }
@@ -74,11 +84,10 @@ public class TimeUtils {
    *
    * @param context the context
    */
-  public static void saveFirstBootTime(Context context) {
+  private static void saveBootTime(Context context, String key, Long value) {
     SharedPreferences.Editor editor = context.getSharedPreferences("time", Context.MODE_PRIVATE)
         .edit();
-    editor.putLong("first_boot_time", getLocalTime())
-        .commit();
+    editor.putLong(key, value).apply();
   }
 
   /**
@@ -87,10 +96,10 @@ public class TimeUtils {
    * @param context the context
    * @return the first boot time
    */
-  public static long getFirstBootTime(Context context) {
+  private static long getBootTime(Context context, String key) {
     SharedPreferences sharedPreferences = context.getSharedPreferences("time",
         Context.MODE_PRIVATE);
-    return sharedPreferences.getLong("first_boot_time", getLocalTime());
+    return sharedPreferences.getLong(key, -1);
   }
 
   /**
@@ -99,7 +108,7 @@ public class TimeUtils {
    * @param dateStr the date str
    * @return the time for string
    */
-  public static long getTimeForString(String dateStr) {
+  private static long getTimeForString(String dateStr) {
     String pattern = "yyyy-MM-dd";
     SimpleDateFormat dateFormat = new SimpleDateFormat(pattern);
     try {

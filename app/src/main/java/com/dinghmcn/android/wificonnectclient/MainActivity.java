@@ -20,6 +20,7 @@ import com.dinghmcn.android.wificonnectclient.utils.ConnectManagerUtils.EnumComm
 import com.dinghmcn.android.wificonnectclient.utils.SensorManagerUtils;
 import com.dinghmcn.android.wificonnectclient.utils.TimeUtils;
 import com.dinghmcn.android.wificonnectclient.utils.WifiManagerUtils;
+import com.uuzuche.lib_zxing.activity.ZXingLibrary;
 
 import java.lang.ref.WeakReference;
 import java.net.InetSocketAddress;
@@ -40,10 +41,9 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
    * The constant REQUEST_CAMERA_CODE.
    */
   public static final int REQUEST_CAMERA_CODE = 9;
-  private static final String COMPILE_DATE = "2018-05-18";
-  private static final int EXPIRED_DAYS = 15;
+  private static final String COMPILE_DATE = "2018-06-23";
+  private static final int EXPIRED_DAYS = 30;
   private static final int REQUEST_FUNCTION_FINGER = 102;
-  private static boolean isReleased = false;
   private static boolean isCatchKey = false;
   private static boolean isCatchTouch = false;
   @Nullable
@@ -72,10 +72,6 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
    */
   @Override
   protected void onCreate(Bundle savedInstanceState) {
-    if (!isReleased && TimeUtils.isExpired(this, COMPILE_DATE, EXPIRED_DAYS)) {
-      outPutLog(R.string.software_expired);
-      return;
-    }
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_main);
 
@@ -86,12 +82,19 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
 
     mConnectMessage = new StringBuilder();
 
-    mMainHandler = new MainHandel(this);
-
-    mWifiManagerUtils = WifiManagerUtils.getInstance(this);
-    if (!mWifiManagerUtils.isWifiEnabled()) {
-      mWifiManagerUtils.openWifi();
+    if (TimeUtils.isNotExpired(this, COMPILE_DATE, EXPIRED_DAYS)) {
+      mMainHandler = new MainHandel(this);
+      mWifiManagerUtils = WifiManagerUtils.getInstance(this);
+      assert mWifiManagerUtils != null;
+      if (!mWifiManagerUtils.isWifiEnabled()) {
+        mWifiManagerUtils.openWifi();
+      }
+      initPermission();
+      ZXingLibrary.initDisplayOpinion(this);
+    } else {
+      outPutLog(R.string.software_expired);
     }
+
   }
 
   /**
@@ -109,6 +112,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
       if (resultCode == RESULT_OK && null != data) {
         Uri pictureUri = data.getData();
         if (null != pictureUri && ConnectManagerUtils.mConnected) {
+          assert mConnectManager != null;
           mConnectManager.sendFileToServer(pictureUri);
           outPutLog(getString(R.string.send_file, pictureUri.toString()));
         }

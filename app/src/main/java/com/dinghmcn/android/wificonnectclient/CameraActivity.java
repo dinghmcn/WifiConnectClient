@@ -21,7 +21,6 @@ import com.google.android.cameraview.AspectRatio;
 import com.google.android.cameraview.CameraView;
 
 import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -45,7 +44,7 @@ public class CameraActivity extends AppCompatActivity implements
   @Nullable
   private Handler mBackgroundHandler;
 
-  private int mCompressionRatio = 1;
+  private float mCompressionRatio = 1;
   private int mPictureWidth = -1;
   private int mPictureHeight = -1;
 
@@ -126,7 +125,8 @@ public class CameraActivity extends AppCompatActivity implements
     int flash = jsonObject.optInt("FlashMode", 3);
     mCameraView.setFlash(flash);
 
-    mCompressionRatio = jsonObject.optInt("CompressionRatio", 1);
+    mCompressionRatio = Double.valueOf(jsonObject.optDouble("CompressionRatio", 1.0))
+        .floatValue();
     Log.d(TAG, "ratio:" + mCameraView.getAspectRatio()
         .toString());
 
@@ -220,23 +220,10 @@ public class CameraActivity extends AppCompatActivity implements
    * @param data             the data
    * @param compressionRatio the compression ratio
    */
-  private void compressBySize(@NonNull byte[] data, int compressionRatio) {
+  private void compressBySize(@NonNull byte[] data, float compressionRatio) {
 
     Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
-    bitmap = zoomImage(bitmap, mPictureHeight, mPictureWidth);
-
-    if (compressionRatio > 1) {
-      ByteArrayOutputStream baos = new ByteArrayOutputStream();
-      bitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos);
-      byte[] bitmapData = baos.toByteArray();
-
-      BitmapFactory.Options opts = new BitmapFactory.Options();
-      opts.inJustDecodeBounds = true;
-      BitmapFactory.decodeByteArray(bitmapData, 0, data.length, opts);
-      opts.inSampleSize = compressionRatio;
-      opts.inJustDecodeBounds = false;
-      bitmap = BitmapFactory.decodeByteArray(bitmapData, 0, data.length, opts);
-    }
+    bitmap = zoomImage(bitmap, mPictureHeight, mPictureWidth, compressionRatio);
 
     String pictureName = "picture" + mCameraView.getFacing() + ".jpg";
     File file = new File(getExternalCacheDir(), pictureName);
@@ -264,12 +251,12 @@ public class CameraActivity extends AppCompatActivity implements
     }
   }
 
-  private Bitmap zoomImage(Bitmap bitmap, int newWidth, int newHeight) {
+  private Bitmap zoomImage(Bitmap bitmap, int newWidth, int newHeight, float compressionRatio) {
     int oldWidth = bitmap.getWidth();
     int oldHeight = bitmap.getHeight();
 
-    float scaleWidth = 1F * newWidth / oldWidth;
-    float scaleHeight = 1F * newHeight / oldHeight;
+    float scaleWidth = newWidth / oldWidth * compressionRatio;
+    float scaleHeight = newHeight / oldHeight * compressionRatio;
 
     float scale = scaleWidth > scaleHeight ? scaleHeight : scaleWidth;
     Log.d(TAG, oldWidth + ":" + oldHeight);

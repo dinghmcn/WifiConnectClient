@@ -12,7 +12,6 @@ import android.util.Log;
 import com.dinghmcn.android.wificonnectclient.utils.CheckPermissionUtils;
 import com.uuzuche.lib_zxing.activity.CaptureActivity;
 import com.uuzuche.lib_zxing.activity.CodeUtils;
-import com.uuzuche.lib_zxing.activity.ZXingLibrary;
 
 import java.util.Arrays;
 import java.util.List;
@@ -42,18 +41,6 @@ public abstract class BaseActivity extends AppCompatActivity implements
   protected final String TAG = getClass().getSimpleName();
 
   /**
-   * On create.
-   *
-   * @param savedInstanceState the saved instance state
-   */
-  @Override
-  protected void onCreate(Bundle savedInstanceState) {
-    super.onCreate(savedInstanceState);
-    initPermission();
-    ZXingLibrary.initDisplayOpinion(this);
-  }
-
-  /**
    * On activity result.
    *
    * @param requestCode the request code
@@ -70,8 +57,8 @@ public abstract class BaseActivity extends AppCompatActivity implements
       if (null != bundle && bundle.getInt(CodeUtils.RESULT_TYPE) == CodeUtils.RESULT_SUCCESS) {
         result = bundle.getString(CodeUtils.RESULT_STRING, "");
       }
+      scannerResult(result);
     }
-    scannerResult(result);
   }
 
   /**
@@ -91,7 +78,7 @@ public abstract class BaseActivity extends AppCompatActivity implements
    */
   @Override
   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-      int[] grantResults) {
+      @NonNull int[] grantResults) {
     super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
     // Forward results to EasyPermissions
@@ -149,7 +136,7 @@ public abstract class BaseActivity extends AppCompatActivity implements
   /**
    * 初始化权限事件.
    */
-  private void initPermission() {
+  protected void initPermission() {
     Log.d(TAG, "check permissions");
     //检查权限
     String[] permissions = CheckPermissionUtils.checkPermission(this);
