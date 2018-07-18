@@ -51,8 +51,9 @@ public class TimeUtils {
     }
     long expiredToFirstBootTime = firstBootTime + day * 24 * 60 * 60 * 1000L;
 
-    Log.d(TAG, "date:" + date + " day:" + day + " localTime:" + localTime + " firstBootTime:"
-        + firstBootTime + " expiredToFirstBootTime:" + expiredToFirstBootTime + " compileTime:"
+    Log.d(TAG, "date:" + date + " day:" + day + " localTime:" + localTime
+        + "lastBootTime" + lastBootTime + " firstBootTime:" + firstBootTime
+        + " expiredToFirstBootTime:" + expiredToFirstBootTime + " compileTime:"
         + compileTime + " expiredToCompileTime:" + expiredToCompileTime);
 
     if (lastBootTime <= localTime) {
@@ -63,8 +64,7 @@ public class TimeUtils {
 
     return (firstBootTime < compileTime && firstBootTime <= localTime
         && localTime <= expiredToFirstBootTime)
-        || (firstBootTime >= compileTime && compileTime <= localTime
-        && localTime <= expiredToCompileTime);
+        || (compileTime <= localTime && localTime <= expiredToCompileTime);
 
   }
 
